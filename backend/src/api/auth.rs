@@ -7,13 +7,21 @@ use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
-    PkceCodeVerifier, RedirectUrl, Scope, TokenUrl,
+    PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
+use reqwest;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 struct OAuth2Callback {
     code: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct OsuUser {
+    id: u32,
+    username: String,
+    avatar_url: String,
 }
 
 async fn get_oauth2_client() -> BasicClient {
@@ -66,9 +74,20 @@ async fn oauth2_callback(
 
     match token_result {
         Ok(token_response) => {
-            println!("Token response: {:?}", token_response);
+            // make request to https://osu.ppy.sh/api/v2/me
+            let user_req = reqwest::Client::new()
+                .get("https://osu.ppy.sh/api/v2/me")
+                .header(
+                    "Authorization",
+                    format!("Bearer {}", token_response.access_token().secret()),
+                )
+                .send()
+                .await
+                .unwrap();
+            let user_info = user_req.json::<OsuUser>().await.unwrap();
+            // print user info
+            println!("User info: {:?}", user_info);
             HttpResponse::Ok().finish()
-            // get user info from osu api
         }
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
