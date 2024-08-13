@@ -5,5 +5,5 @@ pub async fn create_pool() -> sqlx::MySqlPool {
         .max_connections(5)
         .connect(&std::env::var("DATABASE_URL").unwrap())
         .await
-        .unwrap()
+        .expect("Error creating db pool")
 }

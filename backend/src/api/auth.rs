@@ -43,7 +43,7 @@ async fn oauth2_login(session: Session) -> impl Responder {
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
     session
         .insert("pkce_verifier", pkce_verifier.secret())
-        .unwrap();
+        .expect("Error saving pkce_verifier to session");
     let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
         // Set the desired scopes.
@@ -65,7 +65,12 @@ async fn oauth2_callback(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let client = get_oauth2_client().await;
-    let pkce_verifier = PkceCodeVerifier::new(session.get("pkce_verifier").unwrap().unwrap());
+    let pkce_verifier = PkceCodeVerifier::new(
+        session
+            .get("pkce_verifier")
+            .expect("Error getting pkce_verifier from session")
+            .expect("Error unwrapping pkce_verifier from session"),
+    );
     let token_result = client
         .exchange_code(AuthorizationCode::new(query.code.clone()))
         .set_pkce_verifier(pkce_verifier)
@@ -74,7 +79,6 @@ async fn oauth2_callback(
 
     match token_result {
         Ok(token_response) => {
-            // make request to https://osu.ppy.sh/api/v2/me
             let user_req = reqwest::Client::new()
                 .get("https://osu.ppy.sh/api/v2/me")
                 .header(
@@ -83,8 +87,11 @@ async fn oauth2_callback(
                 )
                 .send()
                 .await
-                .unwrap();
-            let user_info = user_req.json::<OsuUser>().await.unwrap();
+                .expect("Error sending request to osu! api");
+            let user_info = user_req
+                .json::<OsuUser>()
+                .await
+                .expect("Error parsing user info");
             // print user info
             println!("User info: {:?}", user_info);
             HttpResponse::Ok().finish()

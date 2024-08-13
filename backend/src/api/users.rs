@@ -12,18 +12,14 @@ struct User {
     email: Option<String>,
 }
 
-
 #[get("/get")]
 async fn get_users(data: web::Data<AppState>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
 
-    let users: Vec<User> = sqlx::query_as!(
-        User,
-        "SELECT id, username, email FROM Users"
-    )
-    .fetch_all(pool)
-    .await
-    .unwrap();
+    let users: Vec<User> = sqlx::query_as!(User, "SELECT id, username, email FROM Users")
+        .fetch_all(pool)
+        .await
+        .expect("Error fetching users");
 
     HttpResponse::Ok().json(users)
 }
