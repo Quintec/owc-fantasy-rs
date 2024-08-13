@@ -1,0 +1,15 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4"
+actix-session = { version = "0.6", features = ["cookie-session"] }
+sqlx = { version = "0.7", features = ["mysql", "runtime-tokio-rustls"] }
+dotenv = "0.15"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = "1"
+env_logger = "0.11.5"
+oauth2 = "4"
