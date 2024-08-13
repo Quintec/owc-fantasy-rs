@@ -1,7 +1,8 @@
 use actix_session::storage::CookieSessionStore;
-use actix_session::SessionMiddleware;
+use actix_session::{CookieContentSecurity, SessionMiddleware};
 use actix_web::cookie::Key;
 use actix_web::{web, App, HttpServer};
+use rand::Rng;
 mod api;
 mod config;
 mod db;
@@ -9,7 +10,13 @@ mod routes;
 mod state;
 
 fn session_middleware() -> SessionMiddleware<CookieSessionStore> {
-    SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64])).build()
+    let mut rng = rand::thread_rng();
+    let random_bytes: Vec<u8> = (0..64).map(|_| rng.gen()).collect();
+    let mut builder =
+        SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&random_bytes));
+    builder
+        .cookie_content_security(CookieContentSecurity::Private)
+        .build()
 }
 
 #[actix_web::main]
