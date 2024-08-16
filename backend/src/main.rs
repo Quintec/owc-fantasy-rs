@@ -23,7 +23,7 @@ fn session_middleware() -> SessionMiddleware<CookieSessionStore> {
 async fn main() -> std::io::Result<()> {
     config::init();
 
-    let pool = db::create_pool().await;
+    let pool = db::pool::create_pool().await;
     HttpServer::new(move || {
         App::new()
             .wrap(actix_web::middleware::Logger::default())
