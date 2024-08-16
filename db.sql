@@ -1,4 +1,7 @@
--- Users table: Stores user information authenticated through OAuth
+CREATE DATABASE IF NOT EXISTS owc_fantasy;
+USE owc_fantasy;
+
+-- Users table: Stores user information
 CREATE TABLE Users (
     id INT UNIQUE NOT NULL,  -- Unique integer ID set at creation
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -42,7 +45,7 @@ CREATE TABLE TeamPlayers (
 CREATE TABLE PlayerPrices (
     player_id INT NOT NULL,
     round ENUM('ro64', 'ro32', 'ro16', 'qf', 'sf', 'f', 'gf') NOT NULL,
-    price DECIMAL(10, 2) NOT NULL,
+    price INT NOT NULL,
     PRIMARY KEY (player_id, round),
     FOREIGN KEY (player_id) REFERENCES Players(id) ON DELETE CASCADE
 );
