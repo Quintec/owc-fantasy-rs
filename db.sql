@@ -1,6 +1,14 @@
 CREATE DATABASE IF NOT EXISTS owc_fantasy;
 USE owc_fantasy;
 
+-- global configuration table with only one row
+CREATE TABLE Config (
+    Lock char(1) not null DEFAULT 'X',
+    current_round ENUM('ro64', 'ro32', 'ro16', 'qf', 'sf', 'f', 'gf') NOT NULL,
+    constraint PK_T1 PRIMARY KEY (Lock),
+    constraint CK_T1_Locked CHECK (Lock='X')
+);
+
 -- Users table: Stores user information
 CREATE TABLE Users (
     id INT UNIQUE NOT NULL,  -- Unique integer ID set at creation

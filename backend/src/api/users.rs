@@ -1,5 +1,5 @@
-use crate::db::users::{self, get_all_users};
-use crate::db::{models::User, users::get_user_by_id};
+use crate::db::models::User;
+use crate::db::users::{get_all_users, get_user_by_id};
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::MySqlPool;
 
