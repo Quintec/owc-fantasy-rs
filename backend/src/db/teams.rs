@@ -1,8 +1,8 @@
 use crate::db::models::{Player, Team};
 
-use sqlx::MySqlPool;
+use sqlx::{mysql::MySqlQueryResult, Error, MySqlPool};
 
-pub async fn get_teams_by_user_id(pool: &MySqlPool, user_id: i32) -> Vec<Team> {
+pub async fn get_teams_by_user_id(pool: &MySqlPool, user_id: i32) -> Result<Vec<Team>, Error> {
     sqlx::query_as!(
         Team,
         "SELECT id, user_id, round FROM Teams WHERE user_id = ?",
@@ -10,10 +10,13 @@ pub async fn get_teams_by_user_id(pool: &MySqlPool, user_id: i32) -> Vec<Team> {
     )
     .fetch_all(pool)
     .await
-    .expect("Error fetching teams")
 }
 
-pub async fn get_round_team_by_user_id(pool: &MySqlPool, user_id: i32, round: String) -> Team {
+pub async fn get_round_team_by_user_id(
+    pool: &MySqlPool,
+    user_id: i32,
+    round: String,
+) -> Result<Team, Error> {
     sqlx::query_as!(
         Team,
         "SELECT id, user_id, round FROM Teams WHERE user_id = ? AND round = ?",
@@ -22,10 +25,13 @@ pub async fn get_round_team_by_user_id(pool: &MySqlPool, user_id: i32, round: St
     )
     .fetch_one(pool)
     .await
-    .expect("Error fetching team")
 }
 
-pub async fn add_player_to_team(pool: &MySqlPool, team_id: i32, player_id: i32) {
+pub async fn add_player_to_team(
+    pool: &MySqlPool,
+    team_id: i32,
+    player_id: i32,
+) -> Result<MySqlQueryResult, Error> {
     sqlx::query!(
         "INSERT INTO TeamPlayers (team_id, player_id) VALUES (?, ?)",
         team_id,
@@ -33,10 +39,13 @@ pub async fn add_player_to_team(pool: &MySqlPool, team_id: i32, player_id: i32) 
     )
     .execute(pool)
     .await
-    .expect("Error adding player to team");
 }
 
-pub async fn remove_player_from_team(pool: &MySqlPool, team_id: i32, player_id: i32) {
+pub async fn remove_player_from_team(
+    pool: &MySqlPool,
+    team_id: i32,
+    player_id: i32,
+) -> Result<MySqlQueryResult, Error> {
     sqlx::query!(
         "DELETE FROM TeamPlayers WHERE team_id = ? AND player_id = ?",
         team_id,
@@ -44,10 +53,9 @@ pub async fn remove_player_from_team(pool: &MySqlPool, team_id: i32, player_id: 
     )
     .execute(pool)
     .await
-    .expect("Error removing player from team");
 }
 
-pub async fn get_players_by_team_id(pool: &MySqlPool, team_id: i32) -> Vec<Player> {
+pub async fn get_players_by_team_id(pool: &MySqlPool, team_id: i32) -> Result<Vec<Player>, Error> {
     // get player ids from TeamPlayers
     let player_ids: Vec<i32> = sqlx::query!(
         "SELECT player_id FROM TeamPlayers WHERE team_id = ?",
@@ -55,8 +63,7 @@ pub async fn get_players_by_team_id(pool: &MySqlPool, team_id: i32) -> Vec<Playe
     )
     .map(|record| record.player_id)
     .fetch_all(pool)
-    .await
-    .expect("Error fetching player ids");
+    .await?;
 
     let player_ids_str = player_ids
         .iter()
@@ -71,5 +78,4 @@ pub async fn get_players_by_team_id(pool: &MySqlPool, team_id: i32) -> Vec<Playe
     )
     .fetch_all(pool)
     .await
-    .expect("Error fetching players")
 }

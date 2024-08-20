@@ -9,9 +9,12 @@ use crate::state::AppState;
 async fn teams_get(data: web::Data<AppState>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
 
-    let users: Vec<Team> = get_teams_by_user_id(pool, 0).await;
+    let users = get_teams_by_user_id(pool, 0).await;
 
-    HttpResponse::Ok().json(users)
+    match users {
+        Ok(users) => HttpResponse::Ok().json(users),
+        Err(_) => HttpResponse::InternalServerError().body("Error fetching teams"),
+    }
 }
 
 pub fn teams_controller() -> actix_web::Scope {

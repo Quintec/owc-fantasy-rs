@@ -1,17 +1,16 @@
 use crate::db::models::Player;
-use sqlx::{MySql, MySqlPool, QueryBuilder};
+use sqlx::{mysql::MySqlQueryResult, Error, MySql, MySqlPool, QueryBuilder};
 
-pub async fn get_all_players(pool: &MySqlPool) -> Vec<Player> {
+pub async fn get_all_players(pool: &MySqlPool) -> Result<Vec<Player>, Error> {
     sqlx::query_as!(
         Player,
         "SELECT id, username, avatar_url, country, rank FROM Players"
     )
     .fetch_all(pool)
     .await
-    .expect("Error fetching players")
 }
 
-pub async fn get_remaining_players(pool: &MySqlPool) -> Vec<Player> {
+pub async fn get_remaining_players(pool: &MySqlPool) -> Result<Vec<Player>, Error> {
     // get players with eliminated field false
     sqlx::query_as!(
         Player,
@@ -19,17 +18,15 @@ pub async fn get_remaining_players(pool: &MySqlPool) -> Vec<Player> {
     )
     .fetch_all(pool)
     .await
-    .expect("Error fetching remaining players")
 }
 
-pub async fn eliminate_player(pool: &MySqlPool, player_id: i32) {
+pub async fn eliminate_player(pool: &MySqlPool, player_id: i32) -> Result<MySqlQueryResult, Error> {
     sqlx::query!("UPDATE Players SET eliminated = 1 WHERE id = ?", player_id)
         .execute(pool)
         .await
-        .expect("Error eliminating player");
 }
 
-pub async fn get_player_by_id(pool: &MySqlPool, id: i32) -> Player {
+pub async fn get_player_by_id(pool: &MySqlPool, id: i32) -> Result<Player, Error> {
     sqlx::query_as!(
         Player,
         "SELECT id, username, avatar_url, country, rank FROM Players WHERE id = ?",
@@ -37,10 +34,9 @@ pub async fn get_player_by_id(pool: &MySqlPool, id: i32) -> Player {
     )
     .fetch_one(pool)
     .await
-    .expect("Error fetching player")
 }
 
-pub async fn create_player(pool: &MySqlPool, player: Player) {
+pub async fn create_player(pool: &MySqlPool, player: Player) -> Result<MySqlQueryResult, Error> {
     sqlx::query!(
         "INSERT INTO Players (id, username, avatar_url, country, rank) VALUES (?, ?, ?, ?, ?)",
         player.id,
@@ -51,10 +47,12 @@ pub async fn create_player(pool: &MySqlPool, player: Player) {
     )
     .execute(pool)
     .await
-    .expect("Error creating player");
 }
 
-pub async fn bulk_create_players(pool: &MySqlPool, players: Vec<Player>) {
+pub async fn bulk_create_players(
+    pool: &MySqlPool,
+    players: Vec<Player>,
+) -> Result<MySqlQueryResult, Error> {
     const BIND_LIMIT: usize = 65535;
     let mut query_builder: QueryBuilder<MySql> =
         QueryBuilder::new("INSERT INTO Players(id, username, avatar_url, country, rank) ");
@@ -65,35 +63,38 @@ pub async fn bulk_create_players(pool: &MySqlPool, players: Vec<Player>) {
             .push_bind(user.country)
             .push_bind(user.rank);
     });
-    let mut query = query_builder.build();
-    query.execute(pool).await.expect("Error creating players");
+    let query = query_builder.build();
+    query.execute(pool).await
 }
 
-pub async fn delete_player(pool: &MySqlPool, id: i32) {
+pub async fn delete_player(pool: &MySqlPool, id: i32) -> Result<MySqlQueryResult, Error> {
     sqlx::query!("DELETE FROM Players WHERE id = ?", id)
         .execute(pool)
         .await
-        .expect("Error deleting player");
 }
 
-pub async fn get_player_price(pool: &MySqlPool, player_id: i32, round: String) -> i32 {
+pub async fn get_player_price(
+    pool: &MySqlPool,
+    player_id: i32,
+    round: String,
+) -> Result<i32, Error> {
     let player_price = sqlx::query!(
         "SELECT price FROM PlayerPrices WHERE player_id = ? AND round = ?",
         player_id,
         round
     )
     .fetch_one(pool)
-    .await;
+    .await?;
 
-    if player_price.is_ok() {
-        player_price.unwrap().price
-    } else {
-        0
-    }
+    Ok(player_price.price)
 }
 
-pub async fn update_player_price(pool: &MySqlPool, player_id: i32, round: String, price: f64) {
-    // check if player price exists in PlayerPrices table for current round
+pub async fn update_player_price(
+    pool: &MySqlPool,
+    player_id: i32,
+    round: String,
+    price: f64,
+) -> Result<MySqlQueryResult, Error> {
     let player_price = sqlx::query!(
         "SELECT * FROM PlayerPrices WHERE player_id = ? AND round = ?",
         player_id,
@@ -111,7 +112,6 @@ pub async fn update_player_price(pool: &MySqlPool, player_id: i32, round: String
         )
         .execute(pool)
         .await
-        .expect("Error updating player price");
     } else {
         sqlx::query!(
             "INSERT INTO PlayerPrices (player_id, price, round) VALUES (?, ?, ?)",
@@ -121,6 +121,5 @@ pub async fn update_player_price(pool: &MySqlPool, player_id: i32, round: String
         )
         .execute(pool)
         .await
-        .expect("Error creating player price");
     }
 }

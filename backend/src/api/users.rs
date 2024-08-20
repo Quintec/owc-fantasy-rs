@@ -9,9 +9,12 @@ use crate::state::AppState;
 async fn users_get(data: web::Data<AppState>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
 
-    let users: Vec<User> = get_all_users(pool).await;
+    let users = get_all_users(pool).await;
 
-    HttpResponse::Ok().json(users)
+    match users {
+        Ok(users) => HttpResponse::Ok().json(users),
+        Err(_) => HttpResponse::InternalServerError().body("Error fetching users"),
+    }
 }
 
 // get user by id under path /users/get/{id}
