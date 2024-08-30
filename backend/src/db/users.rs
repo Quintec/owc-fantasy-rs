@@ -1,5 +1,8 @@
 use crate::db::models::User;
-use sqlx::{Error, MySqlPool};
+use sqlx::{
+    mysql::{MySqlQueryResult, MySqlRow},
+    Error, MySqlPool,
+};
 
 pub async fn get_all_users(pool: &MySqlPool) -> Result<Vec<User>, Error> {
     sqlx::query_as!(User, "SELECT id, username, avatar_url FROM Users")
@@ -14,5 +17,17 @@ pub async fn get_user_by_id(pool: &MySqlPool, id: i32) -> Result<User, Error> {
         id
     )
     .fetch_one(pool)
+    .await
+}
+
+pub async fn create_user(pool: &MySqlPool, user: User) -> Result<MySqlQueryResult, Error> {
+    sqlx::query_as!(
+        User,
+        "INSERT INTO Users (id, username, avatar_url) VALUES (?, ?, ?)",
+        user.id,
+        user.username,
+        user.avatar_url
+    )
+    .execute(pool)
     .await
 }

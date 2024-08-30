@@ -1,5 +1,7 @@
 use std::env;
 
+use crate::db::models::User;
+use crate::db::users::{create_user, get_user_by_id};
 use crate::state::AppState;
 use actix_session::Session;
 use actix_web::{get, web, HttpResponse, Responder};
@@ -15,13 +17,6 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 struct OAuth2Callback {
     code: String,
-}
-
-#[derive(Deserialize, Debug)]
-struct OsuUser {
-    id: u32,
-    username: String,
-    avatar_url: String,
 }
 
 async fn get_oauth2_client() -> BasicClient {
@@ -41,9 +36,9 @@ async fn oauth2_login(session: Session) -> impl Responder {
     let client = get_oauth2_client().await;
     // Generate a PKCE challenge.
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-    session
-        .insert("pkce_verifier", pkce_verifier.secret())
-        .expect("Error saving pkce_verifier to session");
+    if let Err(_) = session.insert("pkce_verifier", pkce_verifier.secret()) {
+        return HttpResponse::InternalServerError().body("Auth flow error");
+    }
     let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
         // Set the desired scopes.
@@ -51,8 +46,7 @@ async fn oauth2_login(session: Session) -> impl Responder {
         // Set the PKCE code challenge.
         .set_pkce_challenge(pkce_challenge)
         .url();
-    // print auth url
-    println!("Auth URL: {}", auth_url);
+
     HttpResponse::Found()
         .append_header(("Location", auth_url.to_string()))
         .finish()
@@ -64,13 +58,15 @@ async fn oauth2_callback(
     session: Session,
     data: web::Data<AppState>,
 ) -> impl Responder {
+    let pool = &data.pool;
     let client = get_oauth2_client().await;
-    let pkce_verifier = PkceCodeVerifier::new(
-        session
-            .get("pkce_verifier")
-            .expect("Error getting pkce_verifier from session")
-            .expect("Error unwrapping pkce_verifier from session"),
-    );
+    let Ok(pkce_verifier_secret) = session.get::<String>("pkce_verifier") else {
+        return HttpResponse::InternalServerError().body("Auth flow error");
+    };
+    let Some(pkce_verifier_secret_data) = pkce_verifier_secret else {
+        return HttpResponse::InternalServerError().body("Auth flow error");
+    };
+    let pkce_verifier = PkceCodeVerifier::new(pkce_verifier_secret_data);
     let token_result = client
         .exchange_code(AuthorizationCode::new(query.code.clone()))
         .set_pkce_verifier(pkce_verifier)
@@ -89,14 +85,29 @@ async fn oauth2_callback(
                 .await
                 .expect("Error sending request to osu! api");
             let user_info = user_req
-                .json::<OsuUser>()
+                .json::<User>()
                 .await
                 .expect("Error parsing user info");
-            // print user info
-            println!("User info: {:?}", user_info);
-            HttpResponse::Ok().finish()
+
+            let user_id = user_info.id;
+
+            // check if user exists in db
+            let user = get_user_by_id(pool, user_info.id).await;
+            if user.is_err() {
+                let res = create_user(pool, user_info).await;
+                if res.is_err() {
+                    return HttpResponse::InternalServerError().body("Error creating user");
+                }
+            }
+            // save user info in session
+            if let Err(_) = session.insert("user_id", user_id) {
+                return HttpResponse::InternalServerError().body("Error saving user info");
+            }
+            HttpResponse::Found()
+                .append_header(("Location", "/"))
+                .finish()
         }
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Err(_) => HttpResponse::InternalServerError().body("Auth flow error"),
     }
 }
 

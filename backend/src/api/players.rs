@@ -1,5 +1,3 @@
-use std::path;
-
 use crate::db::{
     models::Player,
     players::{
@@ -7,11 +5,7 @@ use crate::db::{
         get_player_by_id, get_player_price, get_remaining_players, update_player_price,
     },
 };
-use actix_web::{
-    delete, get, post,
-    web::{self, service},
-    HttpResponse, Responder,
-};
+use actix_web::{delete, get, post, web, HttpResponse, Responder};
 use serde::Deserialize;
 use sqlx::MySqlPool;
 

@@ -12,7 +12,7 @@ mod state;
 fn session_middleware() -> SessionMiddleware<CookieSessionStore> {
     let mut rng = rand::thread_rng();
     let random_bytes: Vec<u8> = (0..64).map(|_| rng.gen()).collect();
-    let mut builder =
+    let builder =
         SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&random_bytes));
     builder
         .cookie_content_security(CookieContentSecurity::Private)
