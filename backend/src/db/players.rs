@@ -93,7 +93,7 @@ pub async fn update_player_price(
     pool: &MySqlPool,
     player_id: i32,
     round: String,
-    price: f64,
+    price: i32,
 ) -> Result<MySqlQueryResult, Error> {
     let player_price = sqlx::query!(
         "SELECT * FROM PlayerPrices WHERE player_id = ? AND round = ?",

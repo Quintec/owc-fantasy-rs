@@ -27,6 +27,20 @@ pub async fn get_round_team_by_user_id(
     .await
 }
 
+pub async fn create_team(
+    pool: &MySqlPool,
+    user_id: i32,
+    round: String,
+) -> Result<MySqlQueryResult, Error> {
+    sqlx::query!(
+        "INSERT INTO Teams (user_id, round) VALUES (?, ?)",
+        user_id,
+        round
+    )
+    .execute(pool)
+    .await
+}
+
 pub async fn add_player_to_team(
     pool: &MySqlPool,
     team_id: i32,

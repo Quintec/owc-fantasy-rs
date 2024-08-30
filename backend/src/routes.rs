@@ -1,4 +1,4 @@
-use crate::api::{auth, players, users};
+use crate::api::{auth, players, teams, users};
 use actix_web::web;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
@@ -6,6 +6,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         web::scope("/api")
             .service(users::users_controller())
             .service(auth::auth_controller())
-            .service(players::players_controller()),
+            .service(players::players_controller())
+            .service(teams::teams_controller()),
     );
 }
