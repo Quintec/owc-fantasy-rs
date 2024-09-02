@@ -1,8 +1,5 @@
 use crate::db::models::User;
-use sqlx::{
-    mysql::{MySqlQueryResult, MySqlRow},
-    Error, MySqlPool,
-};
+use sqlx::{mysql::MySqlQueryResult, Error, MySqlPool};
 
 pub async fn get_all_users(pool: &MySqlPool) -> Result<Vec<User>, Error> {
     sqlx::query_as!(User, "SELECT id, username, avatar_url FROM Users")

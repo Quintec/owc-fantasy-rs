@@ -37,7 +37,7 @@ async fn oauth2_login(session: Session) -> impl Responder {
     // Generate a PKCE challenge.
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
     if let Err(_) = session.insert("pkce_verifier", pkce_verifier.secret()) {
-        return HttpResponse::InternalServerError().body("Auth flow error");
+        return HttpResponse::InternalServerError().body("Auth challenge error");
     }
     let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
@@ -60,9 +60,7 @@ async fn oauth2_callback(
 ) -> impl Responder {
     let pool = &data.pool;
     let client = get_oauth2_client().await;
-    let Ok(pkce_verifier_secret) = session.get::<String>("pkce_verifier") else {
-        return HttpResponse::InternalServerError().body("Auth flow error");
-    };
+    let pkce_verifier_secret = session.get::<String>("pkce_verifier").unwrap_or(None);
     let Some(pkce_verifier_secret_data) = pkce_verifier_secret else {
         return HttpResponse::InternalServerError().body("Auth flow error");
     };
@@ -107,7 +105,7 @@ async fn oauth2_callback(
                 .append_header(("Location", "/"))
                 .finish()
         }
-        Err(_) => HttpResponse::InternalServerError().body("Auth flow error"),
+        Err(_) => HttpResponse::InternalServerError().body("Auth token error"),
     }
 }
 
