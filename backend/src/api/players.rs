@@ -5,7 +5,8 @@ use crate::db::{
         get_player_by_id, get_player_price, get_remaining_players, update_player_price,
     },
 };
-use actix_web::{delete, get, post, web, HttpResponse, Responder};
+use crate::middleware::auth::admin_middleware;
+use actix_web::{delete, get, middleware::from_fn, post, web, HttpResponse, Responder};
 use serde::Deserialize;
 use sqlx::MySqlPool;
 
@@ -47,7 +48,7 @@ async fn players_get_by_id(data: web::Data<AppState>, path: web::Path<i32>) -> i
     }
 }
 
-#[post("/{id}/eliminate")]
+#[post("/{id}/eliminate", wrap = "from_fn(admin_middleware)")]
 async fn players_eliminate(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
     let player_id = path.into_inner();
@@ -59,7 +60,7 @@ async fn players_eliminate(data: web::Data<AppState>, path: web::Path<i32>) -> i
     }
 }
 
-#[post("")]
+#[post("", wrap = "from_fn(admin_middleware)")]
 async fn players_create(data: web::Data<AppState>, player: web::Json<Player>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
 
@@ -70,7 +71,7 @@ async fn players_create(data: web::Data<AppState>, player: web::Json<Player>) ->
     }
 }
 
-#[delete("/{id}")]
+#[delete("/{id}", wrap = "from_fn(admin_middleware)")]
 async fn players_delete(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
     let player_id = path.into_inner();
@@ -82,7 +83,7 @@ async fn players_delete(data: web::Data<AppState>, path: web::Path<i32>) -> impl
     }
 }
 
-#[post("/bulk_create")]
+#[post("/bulk_create", wrap = "from_fn(admin_middleware)")]
 async fn players_bulk_create(
     data: web::Data<AppState>,
     players: web::Json<Vec<Player>>,
@@ -116,7 +117,7 @@ struct PlayerPrice {
     price: i32,
 }
 
-#[post("/{id}/price/{round}")]
+#[post("/{id}/price/{round}", wrap = "from_fn(admin_middleware)")]
 async fn players_set_price(
     data: web::Data<AppState>,
     path: web::Path<(i32, String)>,

@@ -3,7 +3,8 @@ use crate::db::teams::{
     remove_player_from_team,
 };
 use crate::db::users::{get_all_users, get_user_by_id};
-use actix_web::{delete, get, post, web, HttpResponse, Responder};
+use crate::middleware::auth::same_id_middleware;
+use actix_web::{delete, get, middleware::from_fn, post, web, HttpResponse, Responder};
 use serde::Deserialize;
 use sqlx::MySqlPool;
 
@@ -64,7 +65,7 @@ async fn users_get_team_by_round(
     }
 }
 
-#[post("/{id}/teams/{round}/create")]
+#[post("/{id}/teams/{round}/create", wrap = "from_fn(same_id_middleware)")]
 async fn users_create_team(
     data: web::Data<AppState>,
     path: web::Path<(i32, String)>,
@@ -88,7 +89,7 @@ struct PlayerInfo {
     player_id: i32,
 }
 
-#[post("/{id}/teams/{round}")]
+#[post("/{id}/teams/{round}", wrap = "from_fn(same_id_middleware)")]
 async fn users_add_player_to_team(
     data: web::Data<AppState>,
     path: web::Path<(i32, String)>,
@@ -115,7 +116,7 @@ async fn users_add_player_to_team(
     }
 }
 
-#[delete("/{id}/teams/{round}")]
+#[delete("/{id}/teams/{round}", wrap = "from_fn(same_id_middleware)")]
 async fn users_remove_player_from_team(
     data: web::Data<AppState>,
     path: web::Path<(i32, String)>,

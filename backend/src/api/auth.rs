@@ -26,24 +26,19 @@ async fn get_oauth2_client() -> BasicClient {
         AuthUrl::new(env::var("OAUTH_URL").unwrap()).unwrap(),
         Some(TokenUrl::new(env::var("OAUTH_TOKEN_URL").unwrap()).unwrap()),
     )
-    .set_redirect_uri(
-        RedirectUrl::new("http://localhost:8080/api/auth/callback".to_string()).unwrap(),
-    )
+    .set_redirect_uri(RedirectUrl::new(env::var("REDIRECT_URL").unwrap()).unwrap())
 }
 
 #[get("/login")]
 async fn oauth2_login(session: Session) -> impl Responder {
     let client = get_oauth2_client().await;
-    // Generate a PKCE challenge.
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
     if let Err(_) = session.insert("pkce_verifier", pkce_verifier.secret()) {
         return HttpResponse::InternalServerError().body("Auth challenge error");
     }
     let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
-        // Set the desired scopes.
         .add_scope(Scope::new("public".to_string()))
-        // Set the PKCE code challenge.
         .set_pkce_challenge(pkce_challenge)
         .url();
 
@@ -64,6 +59,7 @@ async fn oauth2_callback(
     let Some(pkce_verifier_secret_data) = pkce_verifier_secret else {
         return HttpResponse::InternalServerError().body("Auth flow error");
     };
+    session.remove("pkce_verifier");
     let pkce_verifier = PkceCodeVerifier::new(pkce_verifier_secret_data);
     let token_result = client
         .exchange_code(AuthorizationCode::new(query.code.clone()))
@@ -89,7 +85,6 @@ async fn oauth2_callback(
 
             let user_id = user_info.id;
 
-            // check if user exists in db
             let user = get_user_by_id(pool, user_info.id).await;
             if user.is_err() {
                 let res = create_user(pool, user_info).await;
@@ -97,7 +92,7 @@ async fn oauth2_callback(
                     return HttpResponse::InternalServerError().body("Error creating user");
                 }
             }
-            // save user info in session
+
             if let Err(_) = session.insert("user_id", user_id) {
                 return HttpResponse::InternalServerError().body("Error saving user info");
             }
