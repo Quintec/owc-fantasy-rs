@@ -35,8 +35,10 @@ CREATE TABLE Teams (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     round ENUM('ro64', 'ro32', 'ro16', 'qf', 'sf', 'f', 'gf') NOT NULL,
+    captain_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (captain_id) REFERENCES Players(id) ON DELETE SET NULL
 );
 
 

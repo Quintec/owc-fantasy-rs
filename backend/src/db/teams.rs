@@ -5,7 +5,7 @@ use sqlx::{mysql::MySqlQueryResult, Error, MySqlPool};
 pub async fn get_teams_by_user_id(pool: &MySqlPool, user_id: i32) -> Result<Vec<Team>, Error> {
     sqlx::query_as!(
         Team,
-        "SELECT id, user_id, round FROM Teams WHERE user_id = ?",
+        "SELECT id, user_id, round, captain_id FROM Teams WHERE user_id = ?",
         user_id
     )
     .fetch_all(pool)
@@ -19,7 +19,7 @@ pub async fn get_round_team_by_user_id(
 ) -> Result<Team, Error> {
     sqlx::query_as!(
         Team,
-        "SELECT id, user_id, round FROM Teams WHERE user_id = ? AND round = ?",
+        "SELECT id, user_id, round, captain_id FROM Teams WHERE user_id = ? AND round = ?",
         user_id,
         round
     )

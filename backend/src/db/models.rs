@@ -19,4 +19,5 @@ pub struct Team {
     pub id: i32,
     pub user_id: i32,
     pub round: String,
+    pub captain_id: Option<i32>,
 }
