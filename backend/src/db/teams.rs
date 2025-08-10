@@ -87,7 +87,7 @@ pub async fn get_players_by_team_id(pool: &MySqlPool, team_id: i32) -> Result<Ve
 
     sqlx::query_as!(
         Player,
-        "SELECT id, username, avatar_url, country, rank FROM Players WHERE id IN (?)",
+        "SELECT id, username, avatar_url, country, `rank` FROM Players WHERE id IN (?)",
         player_ids_str
     )
     .fetch_all(pool)
