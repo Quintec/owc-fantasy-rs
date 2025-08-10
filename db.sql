@@ -3,10 +3,10 @@ USE owc_fantasy;
 
 -- global configuration table with only one row
 CREATE TABLE Config (
-    Lock char(1) not null DEFAULT 'X',
+    `Lock` char(1) not null DEFAULT 'X',
     current_round ENUM('ro64', 'ro32', 'ro16', 'qf', 'sf', 'f', 'gf') NOT NULL,
-    constraint PK_T1 PRIMARY KEY (Lock),
-    constraint CK_T1_Locked CHECK (Lock='X')
+    constraint PK_T1 PRIMARY KEY (`Lock`),
+    constraint CK_T1_Locked CHECK (`Lock`='X')
 );
 
 -- Users table: Stores user information
@@ -24,7 +24,7 @@ CREATE TABLE Players (
     username VARCHAR(50) NOT NULL UNIQUE,
     avatar_url VARCHAR(200) NOT NULL,
     country VARCHAR(5) NOT NULL,
-    rank INT NOT NULL,
+    `rank` INT NOT NULL,
     eliminated BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
