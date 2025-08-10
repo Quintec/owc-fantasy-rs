@@ -22,6 +22,22 @@ async fn users_get(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/me")]
+async fn users_get_me(session: actix_session::Session, data: web::Data<AppState>) -> impl Responder {
+    let pool: &MySqlPool = &data.pool;
+    let user_id = session.get::<i32>("user_id").unwrap_or(None);
+    match user_id {
+        Some(id) => {
+            let user = get_user_by_id(pool, id).await;
+            match user {
+                Ok(user) => HttpResponse::Ok().json(user),
+                Err(_) => HttpResponse::NotFound().body("User not found"),
+            }
+        }
+        None => HttpResponse::Unauthorized().body("Not logged in"),
+    }
+}
+
 #[get("/{id}")]
 async fn users_get_by_id(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
@@ -146,6 +162,7 @@ async fn users_remove_player_from_team(
 pub fn users_controller() -> actix_web::Scope {
     web::scope("/users")
         .service(users_get)
+        .service(users_get_me)
         .service(users_get_by_id)
         .service(users_get_teams)
         .service(users_get_team_by_round)
