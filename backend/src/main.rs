@@ -1,4 +1,5 @@
 use actix_web::{web, App, HttpServer};
+use actix_cors::Cors;
 mod api;
 mod config;
 mod db;
@@ -13,6 +14,14 @@ async fn main() -> std::io::Result<()> {
     let pool = db::pool::create_pool().await;
     HttpServer::new(move || {
         App::new()
+            // TODO: change allowed_origin for production environment
+            .wrap(
+                Cors::default()
+                    .allowed_origin("http://localhost:5173")
+                    .allow_any_method()
+                    .allow_any_header()
+                    .supports_credentials(),
+            )
             .wrap(middleware::session::session_middleware())
             .wrap(actix_web::middleware::Logger::default())
             .app_data(web::Data::new(state::AppState { pool: pool.clone() }))

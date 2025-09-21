@@ -4,7 +4,7 @@ use crate::db::models::User;
 use crate::db::users::{create_user, get_user_by_id};
 use crate::state::AppState;
 use actix_session::Session;
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpResponse, Responder};
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
@@ -97,15 +97,37 @@ async fn oauth2_callback(
                 return HttpResponse::InternalServerError().body("Error saving user info");
             }
             HttpResponse::Found()
-                .append_header(("Location", "/"))
+                .append_header(("Location", "http://localhost:5173/"))
                 .finish()
         }
         Err(_) => HttpResponse::InternalServerError().body("Auth token error"),
     }
 }
 
+#[get("/me")]
+async fn oauth2_me(session: Session, data: web::Data<AppState>) -> impl Responder {
+    let pool = &data.pool;
+    let user_id = session.get::<i32>("user_id").unwrap_or(None);
+    if let Some(id) = user_id {
+        match get_user_by_id(pool, id). await {
+            Ok(user) => HttpResponse::Ok().json(user),
+            Err(_) => HttpResponse::InternalServerError().body("Error fetching user")
+        }
+    } else {
+        HttpResponse::Unauthorized().body("Not logged in")
+    }
+}
+
+#[post("/logout")]
+async fn oauth2_logout(session: Session) -> impl Responder {
+    session.remove("user_id");
+    HttpResponse::Ok().body("Logged out")
+}
+
 pub fn auth_controller() -> actix_web::Scope {
     web::scope("/auth")
         .service(oauth2_login)
         .service(oauth2_callback)
+        .service(oauth2_me)
+        .service(oauth2_logout)
 }
