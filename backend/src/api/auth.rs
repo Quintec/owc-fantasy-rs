@@ -96,25 +96,13 @@ async fn oauth2_callback(
             if let Err(_) = session.insert("user_id", user_id) {
                 return HttpResponse::InternalServerError().body("Error saving user info");
             }
+            
+            let frontend_url = env::var("FRONTEND_URL").unwrap();
             HttpResponse::Found()
-                .append_header(("Location", "http://localhost:5173/"))
+                .append_header(("Location", frontend_url))
                 .finish()
         }
         Err(_) => HttpResponse::InternalServerError().body("Auth token error"),
-    }
-}
-
-#[get("/me")]
-async fn oauth2_me(session: Session, data: web::Data<AppState>) -> impl Responder {
-    let pool = &data.pool;
-    let user_id = session.get::<i32>("user_id").unwrap_or(None);
-    if let Some(id) = user_id {
-        match get_user_by_id(pool, id). await {
-            Ok(user) => HttpResponse::Ok().json(user),
-            Err(_) => HttpResponse::InternalServerError().body("Error fetching user")
-        }
-    } else {
-        HttpResponse::Unauthorized().body("Not logged in")
     }
 }
 
@@ -128,6 +116,5 @@ pub fn auth_controller() -> actix_web::Scope {
     web::scope("/auth")
         .service(oauth2_login)
         .service(oauth2_callback)
-        .service(oauth2_me)
         .service(oauth2_logout)
 }

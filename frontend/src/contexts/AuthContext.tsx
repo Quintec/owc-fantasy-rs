@@ -19,13 +19,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
   const refresh = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8080/api/auth/me", {
+      const res = await fetch(`${apiBaseUrl}/api/users/me`, {
         credentials: "include",
       });
-      console.log('refresh() http://localhost:8080/api/auth/me status', res.status)
+      console.log('refresh() /api/users/me status', res.status)
       if (res.ok) {
         const data = await res.json();
         console.log('refresh() user data', data)
@@ -45,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      const res = await fetch("http://localhost:8080/api/auth/logout", {
+      const res = await fetch(`${apiBaseUrl}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });

@@ -3,8 +3,10 @@ import { useAuth } from "../contexts/AuthContext"
 export default function Navbar() {
   const { user, loading, logout } = useAuth()
 
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
   const handleLogin = () => {
-    window.location.href = "http://localhost:8080/api/auth/login"
+    window.location.href = `${apiBaseUrl}/api/auth/login`
   }
 
   const handleLogout = async () => {
