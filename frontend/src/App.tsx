@@ -1,11 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import Navbar from './components/Navbar'
+import { AuthProvider } from './contexts/AuthContext'
 
 function App() {
 
   return (
-    <>
+    <AuthProvider>
       <Router>
       <Navbar />
       <main className="flex-1">
@@ -14,7 +15,7 @@ function App() {
         </Routes>
       </main>
       </Router>
-    </>
+    </AuthProvider>
   )
 }
 
