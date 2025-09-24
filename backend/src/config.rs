@@ -18,6 +18,6 @@ pub fn init() {
     env::var("API_BASE_URL").expect("API_BASE_URL must be set");
     env::var("FRONTEND_URL").expect("FRONTEND_URL must be set");
     env::var("CORS_ORIGINS").expect("CORS_ORIGINS must be set");
-    
+
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 }
