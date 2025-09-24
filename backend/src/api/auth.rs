@@ -4,7 +4,7 @@ use crate::db::models::User;
 use crate::db::users::{create_user, get_user_by_id};
 use crate::state::AppState;
 use actix_session::Session;
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpResponse, Responder};
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
@@ -96,16 +96,25 @@ async fn oauth2_callback(
             if let Err(_) = session.insert("user_id", user_id) {
                 return HttpResponse::InternalServerError().body("Error saving user info");
             }
+            
+            let frontend_url = env::var("FRONTEND_URL").unwrap();
             HttpResponse::Found()
-                .append_header(("Location", "/"))
+                .append_header(("Location", frontend_url))
                 .finish()
         }
         Err(_) => HttpResponse::InternalServerError().body("Auth token error"),
     }
 }
 
+#[post("/logout")]
+async fn oauth2_logout(session: Session) -> impl Responder {
+    session.remove("user_id");
+    HttpResponse::Ok().body("Logged out")
+}
+
 pub fn auth_controller() -> actix_web::Scope {
     web::scope("/auth")
         .service(oauth2_login)
         .service(oauth2_callback)
+        .service(oauth2_logout)
 }
