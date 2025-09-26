@@ -1,6 +1,8 @@
 
 import { useAuth } from '../contexts/AuthContext'
 
+
+
 export default function Home() {
   const { user, loading } = useAuth()
 
@@ -29,7 +31,16 @@ export default function Home() {
                 Login with osu!
               </button>
             )}
-         </div>
+          </div>
+        <div className="flex flex-row justify-between bg-purple-500 max-w-3/4 m-5 p-5 items-center">
+              <p className="text-white text-2xl">Each week, you get the chance to put together your own squad of 8 players. You’ll have a budget of $100M to spend, and no more than two picks from the same country, so every decision counts. To make it even more interesting, you’ll choose a captain whose points are doubled for that week.</p>
+              <img src="https://a.ppy.sh/2" className="min-w-1/4 m-10"></img>
+        </div>
+
+        <div className="flex flex-row justify-between bg-purple-500 max-w-3/4 m-5 p-5 items-center">
+              <img src="https://a.ppy.sh/2" className="min-w-1/4 m-10"></img>
+              <p className="text-white text-2xl">Points come from how your players perform in their real matches. Goals, saves, wins, losses—it all matters. But there’s a catch: if a team plays twice in the same weekend, those players only earn half points for that round. It keeps the playing field level and makes you think twice about loading up on certain picks.</p>
+        </div>
     </div>
   )
 }

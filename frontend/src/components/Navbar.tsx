@@ -1,5 +1,5 @@
 import { useAuth } from "../contexts/AuthContext"
-
+import { Link } from "react-router-dom";
 export default function Navbar() {
   const { user, loading, logout } = useAuth()
 
@@ -17,10 +17,26 @@ export default function Navbar() {
     <nav>
       <div className="flex justify-between bg-gray-800 items-center">
         <ul className="flex text-white gap-5 p-5">
-          <li>Home</li>
-          <li>Team</li>
-          <li>Leaderboards</li>
-          <li>Players</li>
+          <li>
+            <Link to="/" className="hover:text-purple-400 transition-colors">
+              Home
+            </Link>
+          </li>
+          <li>
+            <Link to="/team" className="hover:text-purple-400 transition-colors">
+              Team
+            </Link>
+          </li>
+          <li>
+            <Link to="/leaderboard" className="hover:text-purple-400 transition-colors">
+              Leaderboards
+            </Link>
+          </li>
+          <li>
+            <Link to="/players" className="hover:text-purple-400 transition-colors">
+              Players
+            </Link>
+          </li>
         </ul>
 
         <div className="p-3">
