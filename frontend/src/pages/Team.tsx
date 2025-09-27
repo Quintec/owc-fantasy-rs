@@ -1,67 +1,131 @@
+import { useState, useEffect } from "react";
 import Player from "../components/Player";
+import { getAllPlayers } from "../api/GetAllPlayers";
+import type { PlayerProps } from "../types";
 
 export default function Team() {
-    return (
-        <div className="p-5">
-            <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
-            <div className="grid grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 gap-4">
-                <Player 
-                    id={1}
-                    username="Player1"
-                    country="US"
-                    rank={1}
-                    price={1000000}
-                    eliminated={false}
-                />
-                <Player 
-                    id={2}
-                    username="Player2"
-                    country="JP"
-                    rank={2}
-                    price={950000}
-                    eliminated={false}
-                />
-                <Player 
-                    id={3}
-                    username="123456789012345"
-                    country="KR"
-                    rank={3}
-                    price={900000}
-                    eliminated={false}
-                />
-                <Player 
-                    id={3}
-                    username="123456789012345"
-                    country="KR"
-                    rank={3}
-                    price={900000}
-                    eliminated={false}
-                />
-                <Player 
-                    id={3}
-                    username="123456789012345"
-                    country="KR"
-                    rank={3}
-                    price={900000}
-                    eliminated={false}
-                />
-                <Player 
-                    id={3}
-                    username="123456789012345"
-                    country="KR"
-                    rank={3}
-                    price={900000}
-                    eliminated={false}
-                />
-                <Player 
-                    id={3}
-                    username="123456789012345"
-                    country="KR"
-                    rank={3}
-                    price={900000}
-                    eliminated={false}
-                />
+    const [players, setPlayers] = useState<PlayerProps[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    // Manual test data - replace with real API call later
+    useEffect(() => {
+        const testPlayers: PlayerProps[] = [
+            {
+                id: 12835025,
+                username: "txFPS",
+                country: "CA",
+                rank: 11412,
+                price: 727,
+                eliminated: false,
+                captain: true
+            },
+            {
+                id: 2,
+                username: "Player2",
+                country: "JP",
+                rank: 2,
+                price: 950000,
+                eliminated: false,
+                captain: false
+            },
+            {
+                id: 3,
+                username: "Player3",
+                country: "KR",
+                rank: 3,
+                price: 900000,
+                eliminated: false,
+                captain: false
+            }
+        ];
+        setPlayers(testPlayers);
+        setLoading(false);
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="p-5 flex flex-col items-center">
+                <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
+                <div className="text-white text-xl">Loading players...</div>
             </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-5 flex flex-col items-center">
+                <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
+                <div className="text-red-400 text-xl mb-4">{error}</div>
+                <button 
+                    className="bg-purple-500 text-white px-4 py-2 rounded-md"
+                    onClick={() => window.location.reload()}
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
+    // useEffect(() => {
+    //     const fetchPlayers = async () => {
+    //         try {
+    //             setLoading(true);
+    //             const data = await getAllPlayers();
+    //             setPlayers(data);
+    //             setError(null);
+    //         } catch (err) {
+    //             console.error("Failed to fetch players:", err);
+    //             setError("Failed to load players. Please try again later.");
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
+
+    //     fetchPlayers();
+    // }, []);
+
+    // if (loading) {
+    //     return (
+    //         <div className="p-5 flex flex-col items-center">
+    //             <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
+    //             <div className="text-white text-xl">Loading players...</div>
+    //         </div>
+    //     );
+    // }
+
+    // if (error) {
+    //     return (
+    //         <div className="p-5 flex flex-col items-center">
+    //             <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
+    //             <div className="text-red-400 text-xl mb-4">{error}</div>
+    //             <button 
+    //                 className="bg-purple-500 text-white px-4 py-2 rounded-md"
+    //                 onClick={() => window.location.reload()}
+    //             >
+    //                 Retry
+    //             </button>
+    //         </div>
+    //     );
+    // }
+
+
+    return (
+        <div className="p-5 flex flex-col items-center">
+            <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {players.map((player) => (
+                    <Player 
+                        key={player.id}
+                        id={player.id}
+                        username={player.username}
+                        country={player.country}
+                        rank={player.rank}
+                        price={player.price}
+                        eliminated={player.eliminated}
+                        captain={player.captain || false}
+                    />
+                ))}
+            </div>
+            <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={() => {}}>Edit</button>
         </div>
     );
 }
