@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import Player from "../components/Player";
-import { getAllPlayers } from "../api/GetAllPlayers";
+import { getUserPlayers } from "../api/getUserPlayers";
 import type { PlayerProps } from "../types";
 
 export default function Team() {
-    const [players, setPlayers] = useState<PlayerProps[]>([]);
+    const [userPlayers, setUserPlayers] = useState<PlayerProps[]>([]);
+    const [players, setAllPlayers] = useState<PlayerProps[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [drafting, setDraft] = useState(false);
+
     // Manual test data - replace with real API call later
     useEffect(() => {
         const testPlayers: PlayerProps[] = [
@@ -38,7 +41,8 @@ export default function Team() {
                 captain: false
             }
         ];
-        setPlayers(testPlayers);
+        setUserPlayers(testPlayers);
+        setAllPlayers(testPlayers);
         setLoading(false);
     }, []);
 
@@ -65,6 +69,7 @@ export default function Team() {
             </div>
         );
     }
+
     // useEffect(() => {
     //     const fetchPlayers = async () => {
     //         try {
@@ -107,14 +112,29 @@ export default function Team() {
     //     );
     // }
 
+    if (drafting) {
+        return (
+            <div className="p-5 flex flex-col items-center">
+                {players.filter(p => !p.eliminated).map((player) => (
+                    <Player 
+                        id={player.id}
+                        username={player.username}
+                        country={player.country}
+                        rank={player.rank}
+                        price={player.price}
+                    />
+                ))}    
+            </div>
+        )
+    }
+
 
     return (
         <div className="p-5 flex flex-col items-center">
             <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {players.map((player) => (
+                {userPlayers.map((player) => (
                     <Player 
-                        key={player.id}
                         id={player.id}
                         username={player.username}
                         country={player.country}
@@ -125,7 +145,7 @@ export default function Team() {
                     />
                 ))}
             </div>
-            <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={() => {}}>Edit</button>
+            <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={() => {setDraft(true)}}>Edit</button>
         </div>
     );
 }

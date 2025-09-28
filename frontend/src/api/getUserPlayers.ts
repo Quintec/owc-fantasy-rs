@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { PlayerProps } from "../types";
 
-export async function getAllPlayers(params = {}, config = {}) {
+export async function getUserPlayers(params = {}, config = {}) {
     const apiBaseURL = import.meta.env.VITE_API_URL || "http://localhost:8080";
     try {
         const response = await axios.get(`${apiBaseURL}/api/players`, {
@@ -15,3 +15,4 @@ export async function getAllPlayers(params = {}, config = {}) {
         throw error; // rethrow so the caller can handle it
     }
 }
+
