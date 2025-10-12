@@ -11,13 +11,13 @@ export default function Player(player: PlayerProps) {
     }
 
     return (
-        <div className="flex flex-col bg-pink-500 rounded-md p-4"> 
-            <div className="flex flex-row bg-white-850 mb-5">
-                <img alt="avatar" src={`https://a.ppy.sh/${player.id}`} className="w-1/4 rounded-full mr-3"></img>
+        <div className="flex flex-col h-full bg-pink-500 rounded-md p-3"> 
+            <div className="flex flex-row mb-5 items-center">
+                <img alt="avatar" src={`https://a.ppy.sh/${player.id}`} className="w-15 h-15 rounded-full mr-3"></img>
                 <div className="flex flex-col">
-                    <h1 className="text-white md:text-xl font-bold">{player.username}</h1>
+                    <h1 className="text-white font-bold text-md">{player.username}</h1>
                     <h2 className="text-white text-xl">Rank: {player.rank}</h2>
-                    <img alt="country" src={`https://osuflags.omkserver.nl/${player.country}.png`} className="w-1/4"></img>
+                    <img alt="country" src={`https://osuflags.omkserver.nl/${player.country}.png`} className="w-10 h-10"></img>
                 </div>
             </div>
             <h2 className="text-white text-xl"><span className="font-bold">Price:</span> ${player.price}</h2>

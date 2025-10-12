@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import Player from "../components/Player";
-import { getUserPlayers } from "../api/getUserPlayers";
+import { getUserPlayers } from "../api/getPlayers";
 import type { PlayerProps } from "../types";
+import PlayerList from "../components/PlayerList";
 
 export default function Team() {
     const [userPlayers, setUserPlayers] = useState<PlayerProps[]>([]);
@@ -24,10 +25,55 @@ export default function Team() {
             },
             {
                 id: 2,
-                username: "Player2",
+                username: "012345678912345",
                 country: "JP",
                 rank: 2,
                 price: 950000,
+                eliminated: false,
+                captain: false
+            },
+            {
+                id: 3,
+                username: "Player3",
+                country: "KR",
+                rank: 3,
+                price: 900000,
+                eliminated: false,
+                captain: false
+            },
+            {
+                id: 3,
+                username: "Player3",
+                country: "KR",
+                rank: 3,
+                price: 900000,
+                eliminated: false,
+                captain: false
+            },
+            {
+                id: 3,
+                username: "Player3",
+                country: "KR",
+                rank: 3,
+                price: 900000,
+                eliminated: false,
+                captain: false
+            },
+            {
+                id: 3,
+                username: "Player3",
+                country: "KR",
+                rank: 3,
+                price: 900000,
+                eliminated: false,
+                captain: false
+            },
+            {
+                id: 3,
+                username: "Player3",
+                country: "KR",
+                rank: 3,
+                price: 900000,
                 eliminated: false,
                 captain: false
             },
@@ -115,15 +161,22 @@ export default function Team() {
     if (drafting) {
         return (
             <div className="p-5 flex flex-col items-center">
+                <input type="search" className="min-w-1/2 m-5 p-5 text-white" placeholder="Search player"/>
+                <form>
+
+                </form>
+
                 {players.filter(p => !p.eliminated).map((player) => (
-                    <Player 
+                    <PlayerList 
                         id={player.id}
                         username={player.username}
                         country={player.country}
                         rank={player.rank}
                         price={player.price}
+                        eliminated={player.eliminated}
                     />
-                ))}    
+                ))}
+                <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={() => {setDraft(false)}}>Done</button>    
             </div>
         )
     }
