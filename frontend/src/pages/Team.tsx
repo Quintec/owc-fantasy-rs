@@ -12,6 +12,12 @@ export default function Team() {
     const [drafting, setDraft] = useState(false);
     const [queryPlayer, setPlayerQuery] = useState("");
     const [balance, setBalance] = useState(10000000); // replace with API call later
+    const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
+
+    const showNotification = (message: string, type: 'error' | 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 3000);
+    };
 
     // Manual test data - replace with real API call later
     useEffect(() => {
@@ -165,20 +171,20 @@ export default function Team() {
 
         // Check team size limit
         if (draftedPlayers.length >= 8) {
-            alert("Team is full! Maximum 8 players allowed.");
+            showNotification("Team is full! Maximum 8 players allowed.", 'error');
             return;
         }
 
         // Check balance
         if (balance < player.price) {
-            alert("Insufficient balance!");
+            showNotification("Insufficient balance!", 'error');
             return;
         }
 
         // Check country limit (max 2 players per country)
         const countryCount = draftedPlayers.filter(p => p.country === player.country).length;
         if (countryCount >= 2) {
-            alert(`You already have 2 players from ${player.country}! Maximum 2 players per country allowed.`);
+            showNotification(`You already have 2 players from ${player.country}! Maximum 2 players per country allowed.`, 'error');
             return;
         }
 
@@ -201,14 +207,35 @@ export default function Team() {
             setDraft(false);
             setUserPlayers(draftedPlayers);
         } else {
-            alert("You have not drafted a full team")
+            showNotification("You have not drafted a full team", 'error');
         }
     }
 
     if (drafting) {
         return (
-            <div className="p-5 flex flex-col items-center">
-                <div className="flex items-center gap-4 w-full max-w-4xl mb-6">
+            <div className="p-5 flex flex-col items-center relative">
+                {/* Notification Toast */}
+                {notification && (
+                    <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transition-all duration-300 ${
+                        notification.type === 'error' 
+                            ? 'bg-red-500 text-white' 
+                            : 'bg-green-500 text-white'
+                    }`}>
+                        <div className="flex items-center gap-2">
+                            {notification.type === 'error' ? (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                            ) : (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                            )}
+                            <span className="font-medium">{notification.message}</span>
+                        </div>
+                    </div>
+                )}
+                <div className="flex items-center gap-4 w-full max-w-4xl">
                     <div className="relative flex-1 max-w-md">
                         <input 
                             type="search" 
@@ -258,16 +285,6 @@ export default function Team() {
     }
 
     console.log(players)
-
-    // const checkValidTeam = () => {
-    //     let drafted = []
-    //     players.map((p) => {
-    //         if (p.drafted === true) {
-    //             drafted.push(p)
-    //         }
-    //     })
-    //     if ()
-    // }
 
     return (
         <div className="p-5 flex flex-col items-center">
