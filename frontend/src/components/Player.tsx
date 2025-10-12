@@ -4,14 +4,14 @@ export default function Player(player: PlayerProps) {
 
     if (!player.username) {
         return (
-            <div className="bg-pink-500 rounded-md p-4 flex justify-center items-center"> 
+            <div className="flex flex-col w-full min-w-0 h-full bg-pink-500 rounded-md p-3"> 
                 <h1 className="text-white text-2xl text-bold">N/A</h1>
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col h-full bg-pink-500 rounded-md p-3"> 
+        <div className="flex flex-col w-full min-w-0 h-full bg-pink-500 rounded-md p-3"> 
             <div className="flex flex-row mb-5 items-center">
                 <img alt="avatar" src={`https://a.ppy.sh/${player.id}`} className="w-15 h-15 rounded-full mr-3"></img>
                 <div className="flex flex-col">

@@ -11,6 +11,7 @@ export default function Team() {
     const [error, setError] = useState<string | null>(null);
     const [drafting, setDraft] = useState(false);
     const [queryPlayer, setPlayerQuery] = useState("");
+    const [balance, setBalance] = useState(10000000); // replace with API call later
 
     // Manual test data - replace with real API call later
     useEffect(() => {
@@ -138,51 +139,52 @@ export default function Team() {
         );
     }
 
-    // useEffect(() => {
-    //     const fetchPlayers = async () => {
-    //         try {
-    //             setLoading(true);
-    //             const data = await getAllPlayers();
-    //             setAllPlayers(data);
-    //             players.filter(p => !p.eliminated)
-    //             setError(null);
-    //         } catch (err) {
-    //             console.error("Failed to fetch players:", err);
-    //             setError("Failed to load players. Please try again later.");
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     fetchPlayers();
-    // }, []);
-
-    if (loading) {
-        return (
-            <div className="p-5 flex flex-col items-center">
-                <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
-                <div className="text-white text-xl">Loading players...</div>
-            </div>
-        );
-    }
-
-    // if (error) {
-    //     return (
-    //         <div className="p-5 flex flex-col items-center">
-    //             <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
-    //             <div className="text-red-400 text-xl mb-4">{error}</div>
-    //             <button 
-    //                 className="bg-purple-500 text-white px-4 py-2 rounded-md"
-    //                 onClick={() => window.location.reload()}
-    //             >
-    //                 Retry
-    //             </button>
-    //         </div>
-    //     );
-    // }
-
-
     const toggleSelect = (playerId: number) => {
+        
+        let player = players.find(p => p.id === playerId);
+
+        if (!player) {
+            return;
+        }
+
+        // If player is already drafted, undraft them
+        if (player.drafted === true) {
+            setAllPlayers(prevPlayers => 
+                prevPlayers.map(player => 
+                    player.id === playerId 
+                        ? { ...player, drafted: !player.drafted }
+                        : player
+                )
+            );
+            setBalance((currentBalance) => currentBalance + player.price);
+            return;
+        }
+
+        // Check if we can draft this player
+        let draftedPlayers = players.filter(p => p.drafted === true);
+
+        // Check team size limit
+        if (draftedPlayers.length >= 8) {
+            alert("Team is full! Maximum 8 players allowed.");
+            return;
+        }
+
+        // Check balance
+        if (balance < player.price) {
+            alert("Insufficient balance!");
+            return;
+        }
+
+        // Check country limit (max 2 players per country)
+        const countryCount = draftedPlayers.filter(p => p.country === player.country).length;
+        if (countryCount >= 2) {
+            alert(`You already have 2 players from ${player.country}! Maximum 2 players per country allowed.`);
+            return;
+        }
+
+        // All checks passed, draft the player
+        setBalance((currentBalance) => currentBalance - player.price);
+
         setAllPlayers(prevPlayers => 
             prevPlayers.map(player => 
                 player.id === playerId 
@@ -192,24 +194,48 @@ export default function Team() {
         );
     }
 
+    const finalizeDraft = () => {
+        let draftedPlayers = players.filter(p => p.drafted === true);
+        let draftCount = draftedPlayers.length;
+        if (draftCount === 8) {
+            setDraft(false);
+            setUserPlayers(draftedPlayers);
+        } else {
+            alert("You have not drafted a full team")
+        }
+    }
+
     if (drafting) {
         return (
             <div className="p-5 flex flex-col items-center">
-                <div className="relative w-full max-w-md mb-6">
-                    <input 
-                        type="search" 
-                        className="w-full px-4 py-3 pl-12 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200" 
-                        placeholder="Search players..."
-                        onChange={e => setPlayerQuery(e.target.value)}
-                        value={queryPlayer}
-                    />
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                <div className="flex items-center gap-4 w-full max-w-4xl mb-6">
+                    <div className="relative flex-1 max-w-md">
+                        <input 
+                            type="search" 
+                            className="w-full px-4 py-3 pl-12 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200" 
+                            placeholder="Search players..."
+                            onChange={e => setPlayerQuery(e.target.value)}
+                            value={queryPlayer}
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
                     </div>
                     
+                    <div className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 min-w-48">
+                        <div className="text-gray-400 text-sm">Balance</div>
+                        <div className="text-white text-xl font-bold">${balance.toLocaleString()}</div>
+                    </div>
+
+                    <div className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 min-w-48">
+                        <div className="text-gray-400 text-sm">Draft Count</div>
+                        <div className="text-white text-xl font-bold">{players.filter(p => p.drafted === true).length.toLocaleString()} / 8</div>
+                    </div>
                 </div>
+                
+                <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={finalizeDraft}>Done</button>
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
                 {players.filter(p => p.username.toLowerCase().includes(queryPlayer) || p.country.toLowerCase().includes(queryPlayer)).map((player) => (
@@ -226,11 +252,22 @@ export default function Team() {
                     />
                 ))}
                 </div>
-                <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={() => {setDraft(false)}}>Done</button>    
+                    
             </div>
         )
     }
 
+    console.log(players)
+
+    // const checkValidTeam = () => {
+    //     let drafted = []
+    //     players.map((p) => {
+    //         if (p.drafted === true) {
+    //             drafted.push(p)
+    //         }
+    //     })
+    //     if ()
+    // }
 
     return (
         <div className="p-5 flex flex-col items-center">
@@ -248,7 +285,7 @@ export default function Team() {
                     />
                 ))}
             </div>
-            <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={() => {setDraft(true)}}>Edit</button>
+            <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={() => setDraft(true)}>Edit</button>
         </div>
     );
 }
