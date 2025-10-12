@@ -16,7 +16,7 @@ export default function PlayerList({ id, username, country, rank, price, drafted
 
     return (
         <div 
-            className={`flex flex-col h-full rounded-md p-3 cursor-pointer transition-all duration-200 ${
+            className={`flex flex-col h-full w-full min-w-0 rounded-md p-3 cursor-pointer transition-all duration-200 ${
                 drafted 
                     ? 'bg-green-500 ring-2 ring-green-300' 
                     : 'bg-pink-500 hover:bg-pink-400'

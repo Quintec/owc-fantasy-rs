@@ -15,7 +15,7 @@ export default function Team() {
     // Manual test data - replace with real API call later
     useEffect(() => {
         const testPlayers: PlayerProps[] = [
-            { id: 124493, username: "Cookiezi", country: "KR", rank: 1, price: 1000000, eliminated: false, captain: false, drafted: false },
+            { id: 124493, username: "123465789123456", country: "KR", rank: 1, price: 1000000, eliminated: false, captain: false, drafted: false },
             { id: 124494, username: "Vaxei", country: "US", rank: 2, price: 950000, eliminated: false, captain: false, drafted: false },
             { id: 124495, username: "WhiteCat", country: "PL", rank: 3, price: 900000, eliminated: false, captain: false, drafted: false },
             { id: 124496, username: "mrekk", country: "US", rank: 4, price: 850000, eliminated: false, captain: false, drafted: false },
@@ -211,7 +211,7 @@ export default function Team() {
                     
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
                 {players.filter(p => p.username.toLowerCase().includes(queryPlayer) || p.country.toLowerCase().includes(queryPlayer)).map((player) => (
                     <PlayerList 
                         key={player.id}
