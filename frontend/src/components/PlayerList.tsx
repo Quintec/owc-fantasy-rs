@@ -1,0 +1,27 @@
+import type { PlayerProps } from "../types";
+
+export default function PlayerList(player: PlayerProps, playerSelected: Function) {
+
+    if (!player.username) {
+        return (
+            <div className="bg-pink-500 rounded-md p-4 flex justify-center items-center"> 
+                <h1 className="text-white text-2xl text-bold">N/A</h1>
+            </div>
+        )
+    }
+
+
+    return (
+        <div className="flex flex-col h-full bg-pink-500 rounded-md p-3" onClick={() => playerSelected(player.id)}> 
+            <div className="flex flex-row mb-5 items-center">
+                <img alt="avatar" src={`https://a.ppy.sh/${player.id}`} className="w-15 h-15 rounded-full mr-3"></img>
+                <div className="flex flex-col">
+                    <h1 className="text-white font-bold text-md">{player.username}</h1>
+                    <h2 className="text-white text-xl">Rank: {player.rank}</h2>
+                    <img alt="country" src={`https://osuflags.omkserver.nl/${player.country}.png`} className="w-10 h-10"></img>
+                </div>
+            </div>
+            <h2 className="text-white text-xl"><span className="font-bold">Price:</span> ${player.price}</h2>
+        </div>
+    )
+}

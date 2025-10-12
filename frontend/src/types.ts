@@ -5,7 +5,9 @@ export type PlayerProps = {
     rank: number;
     price: number;
     eliminated: boolean;
+    drafted?: boolean;
     captain?: boolean;
+    playerSelected?: Function;
 };
 
 export type User = {
