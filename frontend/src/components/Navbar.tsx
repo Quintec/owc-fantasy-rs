@@ -42,8 +42,8 @@ export default function Navbar() {
         <div className="p-3">
           {loading ? null : user ? (
             <div className="flex items-center gap-3 text-white">
-              {user.avatar_url ? (
-                <img src={user.avatar_url} alt="avatar" className="w-8 h-8 rounded-full" />
+              {user.id ? (
+                <img src={`https://a.ppy.sh/${user.id}`} alt="avatar" className="w-8 h-8 rounded-full" />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-gray-600" />
               )}

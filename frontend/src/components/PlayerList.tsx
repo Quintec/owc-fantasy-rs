@@ -4,7 +4,7 @@ type PlayerListProps = PlayerProps & {
     playerSelected: (id: number) => void;
 };
 
-export default function PlayerList({ id, username, country, rank, price, drafted, playerSelected }: PlayerListProps) {
+export default function PlayerList({ id, username, country, rank, price, drafted, captain, playerSelected }: PlayerListProps) {
 
     if (!username) {
         return (
@@ -18,7 +18,7 @@ export default function PlayerList({ id, username, country, rank, price, drafted
         <div 
             className={`flex flex-col h-full w-full min-w-0 rounded-md p-3 cursor-pointer transition-all duration-200 ${
                 drafted 
-                    ? 'bg-green-500 ring-2 ring-green-300' 
+                    ? `${captain ? 'bg-yellow-500 ring-2 ring-yellow-300' : 'bg-green-500 ring-2 ring-green-300'}` 
                     : 'bg-pink-500 hover:bg-pink-400'
             }`} 
             onClick={() => playerSelected(id)}
@@ -37,7 +37,7 @@ export default function PlayerList({ id, username, country, rank, price, drafted
             
             {/* Drafted text */}
             {drafted && (
-                <div className="text-green-200 text-sm font-bold mt-2">DRAFTED</div>
+                <div className={`text-sm font-bold mt-2 ${captain ? 'text-yellow-900' : 'text-green-200'}`}>{captain ? 'CAPTAIN' : 'DRAFTED'}</div>
             )}
         </div>
     )

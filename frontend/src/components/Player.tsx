@@ -11,7 +11,7 @@ export default function Player(player: PlayerProps) {
     }
 
     return (
-        <div className="flex flex-col w-full min-w-0 h-full bg-pink-500 rounded-md p-3"> 
+        <div className={`flex flex-col w-full min-w-0 h-full rounded-md p-3 ${player.captain ? 'bg-yellow-500 ring-2 ring-yellow-300' : 'bg-pink-500'}`}> 
             <div className="flex flex-row mb-5 items-center">
                 <img alt="avatar" src={`https://a.ppy.sh/${player.id}`} className="w-15 h-15 rounded-full mr-3"></img>
                 <div className="flex flex-col">
@@ -21,6 +21,9 @@ export default function Player(player: PlayerProps) {
                 </div>
             </div>
             <h2 className="text-white text-xl"><span className="font-bold">Price:</span> ${player.price}</h2>
+            {player.captain && (
+                <div className="text-yellow-900 text-sm font-bold mt-2">CAPTAIN</div>
+            )}
 
         </div>
     )

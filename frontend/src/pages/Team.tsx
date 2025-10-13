@@ -3,6 +3,7 @@ import Player from "../components/Player";
 import { getAllPlayers, getUserPlayers } from "../api/getPlayers";
 import type { PlayerProps } from "../types";
 import PlayerList from "../components/PlayerList";
+import PlaceholderPlayer from "../components/PlaceholderPlayer";
 
 export default function Team() {
     const [userPlayers, setUserPlayers] = useState<PlayerProps[]>([]);
@@ -13,6 +14,7 @@ export default function Team() {
     const [queryPlayer, setPlayerQuery] = useState("");
     const [balance, setBalance] = useState(10000000); // replace with API call later
     const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
+    const draftDeadline = new Date("2025-11-17T00:00:00")
 
     const showNotification = (message: string, type: 'error' | 'success') => {
         setNotification({ message, type });
@@ -235,7 +237,8 @@ export default function Team() {
                         </div>
                     </div>
                 )}
-                <div className="flex items-center gap-4 w-full max-w-4xl">
+
+                <div className="flex items-center gap-4 w-full max-w-4xl justify-center">
                     <div className="relative flex-1 max-w-md">
                         <input 
                             type="search" 
@@ -251,19 +254,93 @@ export default function Team() {
                         </div>
                     </div>
                     
-                    <div className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 min-w-48">
+                    <div className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 min-w-32">
                         <div className="text-gray-400 text-sm">Balance</div>
                         <div className="text-white text-xl font-bold">${balance.toLocaleString()}</div>
                     </div>
 
-                    <div className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 min-w-48">
+                    <div className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 min-w-32">
                         <div className="text-gray-400 text-sm">Draft Count</div>
                         <div className="text-white text-xl font-bold">{players.filter(p => p.drafted === true).length.toLocaleString()} / 8</div>
                     </div>
+                
+                
+
                 </div>
-                
-                <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={finalizeDraft}>Done</button>
-                
+                    <h1 className="text-2xl text-white font-bold mt-5">Current Selection</h1>
+                    <div className="w-full">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto mt-5 auto-rows-fr">
+                        {players.filter(p => p.drafted).map((player, idx) => (
+                            <div
+                                key={player.id}
+                                draggable
+                                onDragStart={(e) => {
+                                    e.dataTransfer.setData('text/plain', String(player.id));
+                                }}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    const draggedId = Number(e.dataTransfer.getData('text/plain'));
+                                    if (!draggedId || draggedId === player.id) return;
+                                    const draftedOrdered = players.filter(p => p.drafted);
+                                    const fromIdx = draftedOrdered.findIndex(p => p.id === draggedId);
+                                    const toIdx = draftedOrdered.findIndex(p => p.id === player.id);
+                                    if (fromIdx === -1 || toIdx === -1) return;
+                                    const reordered = [...draftedOrdered];
+                                    const [moved] = reordered.splice(fromIdx, 1);
+                                    reordered.splice(toIdx, 0, moved);
+                                    // write back to players keeping undrafted after
+                                    const undrafted = players.filter(p => !p.drafted);
+                                    // mark captain = first
+                                    const withCaptain = reordered.map((p, i) => ({ ...p, captain: i === 0 }));
+                                    setAllPlayers([...withCaptain, ...undrafted]);
+                                }}
+                                className={`relative h-full`}
+                            >
+                                {idx === 0 && (
+                                    <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow">CAPTAIN</div>
+                                )}
+                                <div className={`${idx === 0 ? 'ring-2 ring-yellow-400' : ''} h-full`}>
+                                    <PlayerList 
+                                        id={player.id}
+                                        username={player.username}
+                                        country={player.country}
+                                        rank={player.rank}
+                                        price={player.price}
+                                        eliminated={player.eliminated}
+                                        drafted={player.drafted}
+                                        playerSelected={toggleSelect}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                        {Array.from({length: Math.max(0, 8 - players.filter(p => p.drafted).length)}).map((_, i) => (
+                            <div
+                                key={`ph-${i}`}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    const draggedId = Number(e.dataTransfer.getData('text/plain'));
+                                    const draftedOrdered = players.filter(p => p.drafted);
+                                    const fromIdx = draftedOrdered.findIndex(p => p.id === draggedId);
+                                    if (fromIdx === -1) return;
+                                    const reordered = [...draftedOrdered];
+                                    const [moved] = reordered.splice(fromIdx, 1);
+                                    reordered.push(moved);
+                                    const undrafted = players.filter(p => !p.drafted);
+                                    const withCaptain = reordered.map((p, i) => ({ ...p, captain: i === 0 }));
+                                    setAllPlayers([...withCaptain, ...undrafted]);
+                                }}
+                                className="h-full"
+                            >
+                                <PlaceholderPlayer />
+                            </div>
+                        ))}
+                    </div>
+                    
+                    </div>
+                    <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={finalizeDraft}>Done</button>
+
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
                 {players.filter(p => p.username.toLowerCase().includes(queryPlayer) || p.country.toLowerCase().includes(queryPlayer)).map((player) => (
                     <PlayerList 
@@ -289,7 +366,8 @@ export default function Team() {
     return (
         <div className="p-5 flex flex-col items-center">
             <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
                 {userPlayers.map((player) => (
                     <Player 
                         id={player.id}

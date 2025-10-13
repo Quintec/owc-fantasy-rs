@@ -13,5 +13,6 @@ export type PlayerProps = {
 export type User = {
     id: number;
     username: string;
-    avatar_url?: string | null;
+    score: number;
+    team?: PlayerProps[]
 };
