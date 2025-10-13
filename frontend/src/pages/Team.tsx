@@ -14,7 +14,7 @@ export default function Team() {
     const [queryPlayer, setPlayerQuery] = useState("");
     const [balance, setBalance] = useState(10000000); // replace with API call later
     const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
-    const draftDeadline = new Date("2025-11-17T00:00:00")
+    const draftDeadline = new Date("2025-11-17T00:00:00");
 
     const showNotification = (message: string, type: 'error' | 'success') => {
         setNotification({ message, type });
@@ -213,6 +213,11 @@ export default function Team() {
         }
     }
 
+    const resetDraft = () => {
+        setAllPlayers(players.map((p) => ({ ...p, drafted: false })));
+        setBalance(10000000);
+    }
+
     if (drafting) {
         return (
             <div className="p-5 flex flex-col items-center relative">
@@ -268,6 +273,7 @@ export default function Team() {
 
                 </div>
                     <h1 className="text-2xl text-white font-bold mt-5">Current Selection</h1>
+                    <h2 className="text-gray-400 text-sm">Drag to select captain</h2>
                     <div className="w-full">
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto mt-5 auto-rows-fr">
                         {players.filter(p => p.drafted).map((player, idx) => (
@@ -339,8 +345,10 @@ export default function Team() {
                     </div>
                     
                     </div>
-                    <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={finalizeDraft}>Done</button>
-
+                    <div className="flex justify-center w-full">
+                        <button className="bg-green-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/6" onClick={finalizeDraft}>Submit</button>
+                        <button className="bg-red-700 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/6 ml-5" onClick={resetDraft}>Reset</button>
+                    </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
                 {players.filter(p => p.username.toLowerCase().includes(queryPlayer) || p.country.toLowerCase().includes(queryPlayer)).map((player) => (
                     <PlayerList 
@@ -378,6 +386,9 @@ export default function Team() {
                         eliminated={player.eliminated}
                         captain={player.captain || false}
                     />
+                ))}
+                {Array.from({length: Math.max(0, 8 - players.filter(p => p.drafted).length)}).map((_, i) => (
+                    <PlaceholderPlayer/>
                 ))}
             </div>
             <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={() => setDraft(true)}>Edit</button>
