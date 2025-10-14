@@ -30,8 +30,6 @@ CREATE TABLE Players (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE Score ()
-
 -- Teams table: Stores team information
 CREATE TABLE Teams (
     id INT AUTO_INCREMENT PRIMARY KEY,

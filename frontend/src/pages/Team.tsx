@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import Player from "../components/Player";
 import { getAllPlayers, getUserPlayers } from "../api/getPlayers";
 import type { PlayerProps } from "../types";
-import PlayerList from "../components/PlayerList";
 import PlaceholderPlayer from "../components/PlaceholderPlayer";
 
 export default function Team() {
@@ -75,7 +74,7 @@ export default function Team() {
             { id: 124541, username: "Toy", country: "US", rank: 49, price: 1000, eliminated: false, captain: false, drafted: false },
             { id: 124542, username: "RyuK", country: "KR", rank: 50, price: 500, eliminated: false, captain: false, drafted: false }
         ];
-        setAllPlayers(testPlayers);
+        setAllPlayers(testPlayers.sort((a, b) => b.price - a.price));
         
         // Update drafted status based on userPlayers
         const updateDraftedStatus = (allPlayers: PlayerProps[], userPlayers: PlayerProps[]) => {
@@ -301,13 +300,13 @@ export default function Team() {
                                     const withCaptain = reordered.map((p, i) => ({ ...p, captain: i === 0 }));
                                     setAllPlayers([...withCaptain, ...undrafted]);
                                 }}
-                                className={`relative h-full`}
+                                className={`relative`}
                             >
                                 {idx === 0 && (
                                     <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow">CAPTAIN</div>
                                 )}
                                 <div className={`${idx === 0 ? 'ring-2 ring-yellow-400' : ''} h-full`}>
-                                    <PlayerList 
+                                    <Player 
                                         id={player.id}
                                         username={player.username}
                                         country={player.country}
@@ -315,6 +314,7 @@ export default function Team() {
                                         price={player.price}
                                         eliminated={player.eliminated}
                                         drafted={player.drafted}
+                                        captain={player.captain}
                                         playerSelected={toggleSelect}
                                     />
                                 </div>
@@ -351,7 +351,7 @@ export default function Team() {
                     </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
                 {players.filter(p => p.username.toLowerCase().includes(queryPlayer) || p.country.toLowerCase().includes(queryPlayer)).map((player) => (
-                    <PlayerList 
+                    <Player 
                         key={player.id}
                         id={player.id}
                         username={player.username}
@@ -360,6 +360,7 @@ export default function Team() {
                         price={player.price}
                         eliminated={player.eliminated}
                         drafted={player.drafted}
+                        captain={player.captain}
                         playerSelected={toggleSelect}
                     />
                 ))}
@@ -376,16 +377,21 @@ export default function Team() {
             <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
-                {userPlayers.map((player) => (
-                    <Player 
-                        id={player.id}
-                        username={player.username}
-                        country={player.country}
-                        rank={player.rank}
-                        price={player.price}
-                        eliminated={player.eliminated}
-                        captain={player.captain || false}
-                    />
+                {userPlayers.map((player, idx) => (
+                    <div key={player.id} className="relative">
+                        {idx === 0 && (
+                            <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow z-10">CAPTAIN</div>
+                        )}
+                        <Player 
+                            id={player.id}
+                            username={player.username}
+                            country={player.country}
+                            rank={player.rank}
+                            price={player.price}
+                            eliminated={player.eliminated}
+                            captain={player.captain || false}
+                        />
+                    </div>
                 ))}
                 {Array.from({length: Math.max(0, 8 - players.filter(p => p.drafted).length)}).map((_, i) => (
                     <PlaceholderPlayer/>
