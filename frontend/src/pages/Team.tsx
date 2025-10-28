@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Player from "../components/Player";
-import { getAllPlayers, getUserPlayers } from "../api/getPlayers";
+// API helpers available in ../api/getPlayers
 import type { PlayerProps } from "../types";
 import PlaceholderPlayer from "../components/PlaceholderPlayer";
 
@@ -8,12 +8,21 @@ export default function Team() {
     const [userPlayers, setUserPlayers] = useState<PlayerProps[]>([]);
     const [players, setAllPlayers] = useState<PlayerProps[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error] = useState<string | null>(null);
     const [drafting, setDraft] = useState(false);
     const [queryPlayer, setPlayerQuery] = useState("");
     const [balance, setBalance] = useState(10000000); // replace with API call later
     const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
-    const draftDeadline = new Date("2025-11-17T00:00:00");
+    
+    // Define the lock period - adjust these dates as needed
+    const lockStartDate = new Date("2025-11-15T00:00:00"); // Start of lock period
+    const lockEndDate = new Date("2025-11-20T23:59:59");   // End of lock period
+    
+    // Function to check if drafting is currently allowed
+    const isDraftingAllowed = () => {
+        const now = new Date();
+        return now < lockStartDate || now > lockEndDate;
+    };
 
     const showNotification = (message: string, type: 'error' | 'success') => {
         setNotification({ message, type });
@@ -99,7 +108,7 @@ export default function Team() {
     //                 getAllPlayers(),
     //                 getUserPlayers()
     //             ]);
-    //             
+                
     //             // Update drafted status based on userPlayers
     //             const updateDraftedStatus = (allPlayers: PlayerProps[], userPlayers: PlayerProps[]) => {
     //                 return allPlayers.map(player => ({
@@ -107,7 +116,7 @@ export default function Team() {
     //                     drafted: userPlayers.some(userPlayer => userPlayer.id === player.id)
     //                 }));
     //             };
-    //             
+                
     //             setUserPlayers(userPlayersData);
     //             setAllPlayers(updateDraftedStatus(allPlayersData, userPlayersData));
     //             setError(null);
@@ -118,7 +127,7 @@ export default function Team() {
     //             setLoading(false);
     //         }
     //     };
-    //     
+        
     //     fetchData();
     // }, []);
 
@@ -394,10 +403,34 @@ export default function Team() {
                     </div>
                 ))}
                 {Array.from({length: Math.max(0, 8 - players.filter(p => p.drafted).length)}).map((_, i) => (
-                    <PlaceholderPlayer/>
+                    <PlaceholderPlayer key={`ph-${i}`} />
                 ))}
             </div>
-            <button className="bg-purple-500 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4" onClick={() => setDraft(true)}>Edit</button>
+            {isDraftingAllowed() ? (
+                <div className="my-5 text-center w-full">
+                    <button 
+                        className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4 transition-colors" 
+                        onClick={() => setDraft(true)}
+                    >
+                        Edit
+                    </button>
+                    <p className="text-gray-400 text-sm">
+                            Drafting will close at {lockStartDate.toLocaleString()}
+                    </p>
+                </div>
+            ) : (
+                <div className="my-5 text-center w-full">
+                    <button 
+                        className="bg-gray-600 text-gray-400 px-4 py-2 rounded-md text-2xl min-w-1/4 cursor-not-allowed" 
+                        disabled
+                    >
+                        Edit Locked
+                    </button>
+                    <p className="text-gray-400 text-sm">
+                        Drafting is locked during match periods
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
