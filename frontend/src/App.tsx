@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import Team from './pages/Team'
 import Leaderboard from './pages/Leaderboard'
 import Admin from './pages/Admin'
+import NotFound from './pages/NotFound'
 import { AuthProvider } from './contexts/AuthContext'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route path="/team" element={<Team />} />
           <Route path="/leaderboard" element={<Leaderboard/>} />
           <Route path="/admin" element={<Admin/>} />
+          <Route path="*" element={<NotFound/>} />
         </Routes>
       </main>
       </Router>

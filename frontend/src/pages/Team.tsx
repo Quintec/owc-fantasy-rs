@@ -94,11 +94,23 @@ export default function Team() {
     //     setLoading(false);
     // }, []);
 
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { round, isDraftOpen } = useRound();
 
     useEffect(() => {
-        if (!user) return;
+        if (authLoading) {
+            // still determining session; keep page-level loading until we know
+            return;
+        }
+
+        if (!user) {
+            // not logged in — stop data loading and show login prompt
+            setLoading(false);
+            setUserPlayers([]);
+            setAllPlayers([]);
+            setError(null);
+            return;
+        }
         const fetchData = async () => {
             try {
                 setLoading(true);
@@ -127,7 +139,31 @@ export default function Team() {
         };
         
         fetchData();
-    }, [user?.id, round]);
+    }, [user?.id, round, authLoading]);
+
+    if (authLoading) {
+        return (
+            <div className="p-5 flex flex-col items-center">
+                <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
+                <div className="text-white text-xl">Loading session...</div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="p-5 flex flex-col items-center">
+                <h1 className="text-xl font-bold text-white mb-5 text-center">Please log in</h1>
+                <p className="text-gray-400 mb-4">You must be logged in to view and edit your team.</p>
+                <button
+                    className="bg-purple-500 text-white px-4 py-2 rounded-md"
+                    onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/auth/login`}
+                >
+                    Login with osu!
+                </button>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
