@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Navbar from './components/Navbar'
 import Team from './pages/Team'
 import Leaderboard from './pages/Leaderboard'
+import Admin from './pages/Admin'
 import { AuthProvider } from './contexts/AuthContext'
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/team" element={<Team />} />
           <Route path="/leaderboard" element={<Leaderboard/>} />
+          <Route path="/admin" element={<Admin/>} />
         </Routes>
       </main>
       </Router>

@@ -21,7 +21,7 @@ export default function Home() {
          <div className="w-full flex justify-center">
             {loading ? null : user ? (
               <div className="text-center">
-                <h2 className="text-2xl text-white mb-4">Welcome back, {user.username}!</h2>
+                <h2 className="text-2xl text-white m-4">Welcome back, {user.username}!</h2>
               </div>
             ) : (
               <button 

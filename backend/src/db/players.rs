@@ -26,6 +26,13 @@ pub async fn eliminate_player(pool: &MySqlPool, player_id: i32) -> Result<MySqlQ
         .await
 }
 
+// just in case we made a mistake
+pub async fn uneliminate_player(pool: &MySqlPool, player_id: i32) -> Result<MySqlQueryResult, Error> {
+    sqlx::query!("UPDATE Players SET eliminated = 0 WHERE id = ?", player_id)
+        .execute(pool)
+        .await
+}
+
 pub async fn get_player_by_id(pool: &MySqlPool, id: i32) -> Result<Player, Error> {
     sqlx::query_as!(
         Player,

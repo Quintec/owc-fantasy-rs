@@ -60,6 +60,19 @@ async fn players_eliminate(data: web::Data<AppState>, path: web::Path<i32>) -> i
     }
 }
 
+// just in case we made a mistake
+#[post("/{id}/uneliminate", wrap = "from_fn(admin_middleware)")]
+async fn players_uneliminate(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
+    let pool: &MySqlPool = &data.pool;
+    let player_id = path.into_inner();
+
+    let res = crate::db::players::uneliminate_player(pool, player_id).await;
+    match res {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().body("Error un-eliminating player"),
+    }
+}
+
 #[post("", wrap = "from_fn(admin_middleware)")]
 async fn players_create(data: web::Data<AppState>, player: web::Json<Player>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;

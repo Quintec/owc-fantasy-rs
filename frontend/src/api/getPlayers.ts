@@ -1,10 +1,11 @@
+
 import axios from "axios";
-import type { PlayerProps, User, Team } from "../types";
+import type { PlayerProps, User } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 const defaultAxiosConfig = {
-    withCredentials: true, // include cookies for auth
+    withCredentials: true,
 };
 
 export async function getAllPlayers(config = {}) {
@@ -46,16 +47,14 @@ export async function getUsers(config = {}) {
     }
 }
 
-export async function getUserTeams(userId: number, round?: string, config = {}) {
+export async function getUserTeamByRound(userId: number, round: string, config = {}) {
     try {
-        const url = round
-            ? `${API_BASE}/api/users/${userId}/teams/${round}`
-            : `${API_BASE}/api/users/${userId}/teams`;
+        const url = `${API_BASE}/api/users/${userId}/teams/${round}`;
         const res = await axios.get(url, {
             ...defaultAxiosConfig,
             ...config,
         });
-        return res.data as Team | Team[];
+        return res.data as PlayerProps[];
     } catch (err) {
         console.error(`getUserTeams(${userId}) error:`, err);
         throw err;
@@ -75,61 +74,119 @@ export async function getTeamPlayers(teamId: number, config = {}) {
     }
 }
 
-// Fetch all players for a given user (optionally for a specific round)
-export async function getUserPlayers(userId: number, round?: string, config = {}) {
-    try {
-        const teams = await getUserTeams(userId, round, config);
-        const teamsArr = Array.isArray(teams) ? teams : [teams];
-        const playersNested = await Promise.all(teamsArr.map((t) => getTeamPlayers(t.id, config)));
-        // flatten
-        return playersNested.flat() as PlayerProps[];
-    } catch (err) {
-        console.error(`getUserPlayers(${userId}) error:`, err);
-        throw err;
+    // Admin helper: parse multiplayer links (backend must implement endpoint to accept these links)
+    export async function parseMultiplayerLinks(links: string[], round?: string, config = {}) {
+        try {
+            const res = await axios.post(`${API_BASE}/api/admin/parse-multiplayer`, { links, round }, {
+                ...defaultAxiosConfig,
+                ...config,
+            });
+            return res.data;
+        } catch (err) {
+            console.error('parseMultiplayerLinks error:', err);
+            throw err;
+        }
     }
-}
 
-export async function getPlayerPrice(playerId: number, round: string, config = {}) {
+    // Admin helper: eliminate players in the tournament (not tied to any user/team).
+    // By default this will target players returned by `/api/players/remaining` (players still in the tournament).
+    // If `country` is provided, only players with that country code will be eliminated.
+    export async function eliminatePlayers(country?: string, config = {}) {
+        try {
+            // fetch players still remaining in tournament
+            const players = await getRemainingPlayers(config);
+
+            const toEliminate = country
+                ? players.filter((p: PlayerProps) => p.country?.toLowerCase() === country.toLowerCase())
+                : players;
+
+            for (const p of toEliminate) {
+                await axios.post(`${API_BASE}/api/players/${p.id}/eliminate`, {}, {
+                    ...defaultAxiosConfig,
+                    ...config,
+                });
+            }
+
+            return { eliminated: toEliminate.map((p: PlayerProps) => p.id) };
+        } catch (err) {
+            console.error(`eliminatePlayers(country=${country}) error:`, err);
+            throw err;
+        }
+    }
+
+    // Admin helper: un-eliminate players in the tournament (admin-only endpoint).
+    // This will call POST /api/players/{id}/uneliminate for each matched player.
+    export async function unEliminatePlayers(country?: string, config = {}) {
+        try {
+            // Note: getRemainingPlayers returns players where eliminated = false. To find
+            // players that are eliminated (so we can un-eliminate them), we should fetch all players
+            // and then filter by eliminated === true. However, the API doesn't currently expose
+            // a dedicated "eliminated" endpoint. We'll fetch all players and filter client-side.
+            const all = await getAllPlayers(config);
+            const eliminatedPlayers = all.filter((p: PlayerProps) => (p as any).eliminated);
+
+            const toUnEliminate = country
+                ? eliminatedPlayers.filter((p: PlayerProps) => p.country?.toLowerCase() === country.toLowerCase())
+                : eliminatedPlayers;
+
+            for (const p of toUnEliminate) {
+                await axios.post(`${API_BASE}/api/players/${p.id}/uneliminate`, {}, {
+                    ...defaultAxiosConfig,
+                    ...config,
+                });
+            }
+
+            return { uneliminated: toUnEliminate.map((p: PlayerProps) => p.id) };
+        } catch (err) {
+            console.error(`unEliminatePlayers(country=${country}) error:`, err);
+            throw err;
+        }
+    }
+
+export async function getAllUserTeams(userId: number, config = {}) {
     try {
-        const res = await axios.get(`${API_BASE}/api/players/${playerId}/price/${round}`, {
+        const url = `${API_BASE}/api/users/${userId}/teams`;
+        const res = await axios.get(url, {
             ...defaultAxiosConfig,
             ...config,
         });
-        // API returns a plain number
-        return res.data as number;
+        return res.data as PlayerProps[][];
     } catch (err) {
-        console.error(`getPlayerPrice(${playerId}, ${round}) error:`, err);
+        console.error(`getUserTeams(${userId}) error:`, err);
         throw err;
     }
 }
 
-// Convenience: fetch users + their teams' players (optionally for a specific round) and remaining players
-export async function fetchTeamsAndRemaining(round?: string) {
+// To-do: handle captain_id separately?
+// Create a team for a given userId and add the provided player IDs.
+// This matches backend endpoints: POST /api/users/{id}/teams/{round}/create and POST /api/users/{id}/teams/{round} (one player at a time).
+export async function postPlayers(userId: number, playerIds: number[], round: string, config = {}) {
     try {
-        // fetch users and remaining players in parallel
-        const [users, remaining] = await Promise.all([getUsers(), getRemainingPlayers()]);
+        // Create the team for the user (requires same-id middleware on the server)
+        await axios.post(`${API_BASE}/api/users/${userId}/teams/${round}/create`,
+            {},
+            {
+                ...defaultAxiosConfig,
+                ...config,
+            }
+        );
 
-        // For each user fetch their team(s). Use parallel requests but limit concurrency if needed.
-        const teamsByUserPromises = users.map(async (u) => {
-            const teams = await getUserTeams(u.id, round);
-            // teams may be a single Team (when round provided) or an array
-            const teamsArr = Array.isArray(teams) ? teams : [teams];
-            // fetch players for each team in parallel
-            const teamsWithPlayers = await Promise.all(
-                teamsArr.map(async (t) => ({ team: t, players: await getTeamPlayers(t.id) }))
+        // Add each player one-by-one (server expects { player_id })
+        for (const pid of playerIds) {
+            await axios.post(`${API_BASE}/api/users/${userId}/teams/${round}`,
+                { player_id: pid },
+                {
+                    ...defaultAxiosConfig,
+                    ...config,
+                }
             );
-            return { user: u, teams: teamsWithPlayers };
-        });
+        }
 
-        const usersWithTeams = await Promise.all(teamsByUserPromises);
-
-        return {
-            users: usersWithTeams,
-            remainingPlayers: remaining,
-        };
+        // Return the created team for the round
+        const team = await getUserTeamByRound(userId, round, config);
+        return team as PlayerProps[];
     } catch (err) {
-        console.error("fetchTeamsAndRemaining error:", err);
+        console.error("postPlayers error:", err);
         throw err;
     }
 }
-
