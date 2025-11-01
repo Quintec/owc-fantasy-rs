@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import Player from "../components/Player";
 import type { PlayerProps } from "../types";
 import PlaceholderPlayer from "../components/PlaceholderPlayer";
-import { getUserTeamByRound, getRemainingPlayers } from "../api/getPlayers";
+import { getRemainingPlayers, getTeamPlayers } from "../api/players";
+import { postPlayers, getUserTeamByRound  } from "../api/users";
 import { useAuth } from "../contexts/AuthContext";
 import { useRound } from "../contexts/RoundContext";
 
@@ -27,56 +28,56 @@ export default function Team() {
     // Manual test data - replace with real API call later
     // useEffect(() => {
     //     const testPlayers: PlayerProps[] = [
-            // { id: 124493, username: "123465789123456", country: "KR", rank: 1, price: 1000000, eliminated: false, captain: false, drafted: false },
-            // { id: 124494, username: "Vaxei", country: "US", rank: 2, price: 950000, eliminated: false, captain: false, drafted: false },
-            // { id: 124495, username: "WhiteCat", country: "PL", rank: 3, price: 900000, eliminated: false, captain: false, drafted: false },
-            // { id: 124496, username: "mrekk", country: "US", rank: 4, price: 850000, eliminated: false, captain: false, drafted: false },
-            // { id: 124497, username: "Aricin", country: "US", rank: 5, price: 800000, eliminated: false, captain: false, drafted: false },
-            // { id: 124498, username: "Bubbleman", country: "GB", rank: 6, price: 750000, eliminated: false, captain: false, drafted: false },
-            // { id: 124499, username: "Rafis", country: "PL", rank: 7, price: 700000, eliminated: false, captain: false, drafted: false },
-            // { id: 124500, username: "idke", country: "US", rank: 8, price: 650000, eliminated: false, captain: false, drafted: false },
-            // { id: 124501, username: "Azer", country: "US", rank: 9, price: 600000, eliminated: false, captain: false, drafted: false },
-            // { id: 124502, username: "Rohulk", country: "RO", rank: 10, price: 550000, eliminated: false, captain: false, drafted: false },
-            // { id: 124503, username: "Mathi", country: "FR", rank: 11, price: 500000, eliminated: false, captain: false, drafted: false },
-            // { id: 124504, username: "WubWoofWolf", country: "PL", rank: 12, price: 450000, eliminated: false, captain: false, drafted: false },
-            // { id: 124505, username: "Doomsday", country: "GB", rank: 13, price: 400000, eliminated: false, captain: false, drafted: false },
-            // { id: 124506, username: "Toy", country: "US", rank: 14, price: 380000, eliminated: false, captain: false, drafted: false },
-            // { id: 124507, username: "RyuK", country: "KR", rank: 15, price: 360000, eliminated: false, captain: false, drafted: false },
-            // { id: 124508, username: "Angelsim", country: "US", rank: 16, price: 340000, eliminated: false, captain: false, drafted: false },
-            // { id: 124509, username: "hvick225", country: "TW", rank: 17, price: 320000, eliminated: false, captain: false, drafted: false },
-            // { id: 124510, username: "Axarious", country: "US", rank: 18, price: 300000, eliminated: false, captain: false, drafted: false },
-            // { id: 124511, username: "Seouless", country: "KR", rank: 19, price: 280000, eliminated: false, captain: false, drafted: false },
-            // { id: 124512, username: "Emilia", country: "US", rank: 20, price: 260000, eliminated: false, captain: false, drafted: false },
-            // { id: 124513, username: "Filsdelama", country: "FR", rank: 21, price: 240000, eliminated: false, captain: false, drafted: false },
-            // { id: 124514, username: "Yaong", country: "KR", rank: 22, price: 220000, eliminated: false, captain: false, drafted: false },
-            // { id: 124515, username: "Karthy", country: "GB", rank: 23, price: 200000, eliminated: false, captain: false, drafted: false },
-            // { id: 124516, username: "Dustice", country: "DE", rank: 24, price: 180000, eliminated: false, captain: false, drafted: false },
-            // { id: 124517, username: "Rohi6", country: "JP", rank: 25, price: 160000, eliminated: false, captain: false, drafted: false },
-            // { id: 124518, username: "Pishifat", country: "US", rank: 26, price: 140000, eliminated: false, captain: false, drafted: false },
-            // { id: 124519, username: "Monstrata", country: "US", rank: 27, price: 120000, eliminated: false, captain: false, drafted: false },
-            // { id: 124520, username: "Naxess", country: "SE", rank: 28, price: 100000, eliminated: false, captain: false, drafted: false },
-            // { id: 124521, username: "ktgster", country: "US", rank: 29, price: 90000, eliminated: false, captain: false, drafted: false },
-            // { id: 124522, username: "HappyStick", country: "US", rank: 30, price: 80000, eliminated: false, captain: false, drafted: false },
-            // { id: 124523, username: "Guy", country: "US", rank: 31, price: 70000, eliminated: false, captain: false, drafted: false },
-            // { id: 124524, username: "Plaudible", country: "US", rank: 32, price: 60000, eliminated: false, captain: false, drafted: false },
-            // { id: 124525, username: "Niko", country: "US", rank: 33, price: 50000, eliminated: false, captain: false, drafted: false },
-            // { id: 124526, username: "Bikko", country: "JP", rank: 34, price: 45000, eliminated: false, captain: false, drafted: false },
-            // { id: 124527, username: "My Angel Haruna", country: "JP", rank: 35, price: 40000, eliminated: false, captain: false, drafted: false },
-            // { id: 124528, username: "Varvalian", country: "JP", rank: 36, price: 35000, eliminated: false, captain: false, drafted: false },
-            // { id: 124529, username: "Nakano-", country: "JP", rank: 37, price: 30000, eliminated: false, captain: false, drafted: false },
-            // { id: 124530, username: "Azerite", country: "US", rank: 38, price: 25000, eliminated: false, captain: false, drafted: false },
-            // { id: 124531, username: "Elysion", country: "US", rank: 39, price: 20000, eliminated: false, captain: false, drafted: false },
-            // { id: 124532, username: "Mismagius", country: "US", rank: 40, price: 15000, eliminated: false, captain: false, drafted: false },
-            // { id: 124533, username: "Woey", country: "US", rank: 41, price: 12000, eliminated: false, captain: false, drafted: false },
-            // { id: 124534, username: "Monko2k", country: "US", rank: 42, price: 10000, eliminated: false, captain: false, drafted: false },
-            // { id: 124535, username: "Dustice", country: "DE", rank: 43, price: 8000, eliminated: false, captain: false, drafted: false },
-            // { id: 124536, username: "Karthy", country: "GB", rank: 44, price: 6000, eliminated: false, captain: false, drafted: false },
-            // { id: 124537, username: "Rohulk", country: "RO", rank: 45, price: 4000, eliminated: false, captain: false, drafted: false },
-            // { id: 124538, username: "Mathi", country: "FR", rank: 46, price: 3000, eliminated: false, captain: false, drafted: false },
-            // { id: 124539, username: "WubWoofWolf", country: "PL", rank: 47, price: 2000, eliminated: false, captain: false, drafted: false },
-            // { id: 124540, username: "txFPS", country: "CA", rank: 48, price: 1500, eliminated: false, captain: false, drafted: false },
-            // { id: 124541, username: "Toy", country: "US", rank: 49, price: 1000, eliminated: false, captain: false, drafted: false },
-            // { id: 124542, username: "RyuK", country: "KR", rank: 50, price: 500, eliminated: false, captain: false, drafted: false }
+    //         { id: 124493, username: "123465789123456", country: "KR", rank: 1, price: 1000000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124494, username: "Vaxei", country: "US", rank: 2, price: 950000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124495, username: "WhiteCat", country: "PL", rank: 3, price: 900000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124496, username: "mrekk", country: "US", rank: 4, price: 850000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124497, username: "Aricin", country: "US", rank: 5, price: 800000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124498, username: "Bubbleman", country: "GB", rank: 6, price: 750000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124499, username: "Rafis", country: "PL", rank: 7, price: 700000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124500, username: "idke", country: "US", rank: 8, price: 650000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124501, username: "Azer", country: "US", rank: 9, price: 600000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124502, username: "Rohulk", country: "RO", rank: 10, price: 550000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124503, username: "Mathi", country: "FR", rank: 11, price: 500000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124504, username: "WubWoofWolf", country: "PL", rank: 12, price: 450000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124505, username: "Doomsday", country: "GB", rank: 13, price: 400000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124506, username: "Toy", country: "US", rank: 14, price: 380000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124507, username: "RyuK", country: "KR", rank: 15, price: 360000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124508, username: "Angelsim", country: "US", rank: 16, price: 340000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124509, username: "hvick225", country: "TW", rank: 17, price: 320000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124510, username: "Axarious", country: "US", rank: 18, price: 300000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124511, username: "Seouless", country: "KR", rank: 19, price: 280000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124512, username: "Emilia", country: "US", rank: 20, price: 260000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124513, username: "Filsdelama", country: "FR", rank: 21, price: 240000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124514, username: "Yaong", country: "KR", rank: 22, price: 220000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124515, username: "Karthy", country: "GB", rank: 23, price: 200000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124516, username: "Dustice", country: "DE", rank: 24, price: 180000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124517, username: "Rohi6", country: "JP", rank: 25, price: 160000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124518, username: "Pishifat", country: "US", rank: 26, price: 140000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124519, username: "Monstrata", country: "US", rank: 27, price: 120000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124520, username: "Naxess", country: "SE", rank: 28, price: 100000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124521, username: "ktgster", country: "US", rank: 29, price: 90000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124522, username: "HappyStick", country: "US", rank: 30, price: 80000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124523, username: "Guy", country: "US", rank: 31, price: 70000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124524, username: "Plaudible", country: "US", rank: 32, price: 60000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124525, username: "Niko", country: "US", rank: 33, price: 50000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124526, username: "Bikko", country: "JP", rank: 34, price: 45000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124527, username: "My Angel Haruna", country: "JP", rank: 35, price: 40000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124528, username: "Varvalian", country: "JP", rank: 36, price: 35000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124529, username: "Nakano-", country: "JP", rank: 37, price: 30000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124530, username: "Azerite", country: "US", rank: 38, price: 25000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124531, username: "Elysion", country: "US", rank: 39, price: 20000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124532, username: "Mismagius", country: "US", rank: 40, price: 15000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124533, username: "Woey", country: "US", rank: 41, price: 12000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124534, username: "Monko2k", country: "US", rank: 42, price: 10000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124535, username: "Dustice", country: "DE", rank: 43, price: 8000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124536, username: "Karthy", country: "GB", rank: 44, price: 6000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124537, username: "Rohulk", country: "RO", rank: 45, price: 4000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124538, username: "Mathi", country: "FR", rank: 46, price: 3000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124539, username: "WubWoofWolf", country: "PL", rank: 47, price: 2000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124540, username: "txFPS", country: "CA", rank: 48, price: 1500, eliminated: false, captain: false, drafted: false },
+    //         { id: 124541, username: "Toy", country: "US", rank: 49, price: 1000, eliminated: false, captain: false, drafted: false },
+    //         { id: 124542, username: "RyuK", country: "KR", rank: 50, price: 500, eliminated: false, captain: false, drafted: false }
     //     ];
     //     setAllPlayers(testPlayers.sort((a, b) => b.price - a.price));
         
@@ -114,10 +115,22 @@ export default function Team() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [allPlayersData, userPlayersData] = await Promise.all([
-                    getRemainingPlayers(),
-                    getUserTeamByRound(user.id, round)
-                ]);
+                const allPlayersData = await getRemainingPlayers();
+
+                // backend /users/{id}/teams/{round} returns a Team object (or 404)
+                // so fetch the team first and then fetch team players by team id.
+                const teamOrPlayers = await getUserTeamByRound(user.id, round);
+                let userPlayersData: PlayerProps[] = [];
+                if (Array.isArray(teamOrPlayers)) {
+                    // older API shape: endpoint returned array of players
+                    userPlayersData = teamOrPlayers;
+                } else if (teamOrPlayers && (teamOrPlayers as any).id) {
+                    // team object returned, fetch players by team id
+                    const teamId = (teamOrPlayers as any).id as number;
+                    userPlayersData = await getTeamPlayers(teamId);
+                } else {
+                    userPlayersData = [];
+                }
                 
                 // Update drafted status based on userPlayers
                 const updateDraftedStatus = (allPlayers: PlayerProps[], userPlayers: PlayerProps[]) => {
@@ -244,14 +257,34 @@ export default function Team() {
         );
     }
 
-    const finalizeDraft = () => {
+    const finalizeDraft = async () => {
         let draftedPlayers = players.filter(p => p.drafted === true);
         let draftCount = draftedPlayers.length;
-        if (draftCount === 8) {
-            setDraft(false);
-            setUserPlayers(draftedPlayers);
-        } else {
+        if (draftCount !== 8) {
             showNotification("You have not drafted a full team", 'error');
+            return;
+        }
+
+        if (!user) {
+            showNotification('You must be logged in to submit your team', 'error');
+            return;
+        }
+
+        // Prepare player IDs in the order they appear (captain is first)
+        const playerIds = draftedPlayers.map(p => p.id);
+
+        try {
+            setLoading(true);
+            // Call backend to create team and add players
+            const createdTeam = await postPlayers(user.id, playerIds, round);
+            setUserPlayers(createdTeam);
+            setDraft(false);
+            showNotification('Team submitted successfully', 'success');
+        } catch (err) {
+            console.error('Failed to submit team', err);
+            showNotification('Failed to submit team. See console for details.', 'error');
+        } finally {
+            setLoading(false);
         }
     }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRound } from '../contexts/RoundContext';
-import { parseMultiplayerLinks, eliminatePlayers, unEliminatePlayers, getAllPlayers } from '../api/getPlayers';
+import { parseMultiplayerLinks, eliminatePlayers, unEliminatePlayers, getAllPlayers } from '../api/players';
 import type { PlayerProps } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
