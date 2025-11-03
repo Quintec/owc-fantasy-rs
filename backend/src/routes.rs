@@ -1,5 +1,5 @@
 use crate::{
-    api::{auth, players, teams, users},
+    api::{auth, admin, players, teams, users},
     middleware::auth::auth_middleware,
 };
 use actix_web::web;
@@ -11,6 +11,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .service(users::users_controller())
             .service(auth::auth_controller())
             .service(players::players_controller())
-            .service(teams::teams_controller()),
+            .service(teams::teams_controller())
+            .service(admin::admin_controller()),
     );
 }
