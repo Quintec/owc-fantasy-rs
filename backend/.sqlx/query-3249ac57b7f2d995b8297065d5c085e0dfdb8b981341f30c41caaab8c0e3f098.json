@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT score FROM PlayerScores WHERE player_id = ? AND round = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "score",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL",
+          "char_set": 63,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3249ac57b7f2d995b8297065d5c085e0dfdb8b981341f30c41caaab8c0e3f098"
+}

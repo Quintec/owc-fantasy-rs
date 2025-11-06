@@ -51,6 +51,15 @@ CREATE TABLE TeamPlayers (
     FOREIGN KEY (player_id) REFERENCES Players(id) ON DELETE CASCADE
 );
 
+-- PlayerScores table: Stores player scores for each round
+CREATE TABLE PlayerScores (
+    player_id INT NOT NULL,
+    round ENUM('ro64', 'ro32', 'ro16', 'qf', 'sf', 'f', 'gf') NOT NULL,
+    score INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (player_id, round),
+    FOREIGN KEY (player_id) REFERENCES Players(id) ON DELETE CASCADE
+);
+
 -- PlayerPrices table: Stores player prices for each round
 CREATE TABLE PlayerPrices (
     player_id INT NOT NULL,

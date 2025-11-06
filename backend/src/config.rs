@@ -19,5 +19,8 @@ pub fn init() {
     env::var("FRONTEND_URL").expect("FRONTEND_URL must be set");
     env::var("CORS_ORIGINS").expect("CORS_ORIGINS must be set");
 
+    env::var("ADMIN_CLIENT_ID").expect("ADMIN_CLIENT_ID must be set");
+    env::var("ADMIN_CLIENT_SECRET").expect("ADMIN_CLIENT_SECRET must be set");
+
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 }

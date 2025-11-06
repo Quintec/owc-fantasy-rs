@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO TeamPlayers (team_id, player_id) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "e02d1c072fa4610b89199e393b13ff87e23c5c92c1bcabf41dd0b0e49aea1d5a"
+}

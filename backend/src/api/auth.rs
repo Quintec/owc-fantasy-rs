@@ -96,6 +96,8 @@ async fn oauth2_callback(
             if let Err(_) = session.insert("user_id", user_id) {
                 return HttpResponse::InternalServerError().body("Error saving user info");
             }
+            // store access token in session so endpoints can call osu! on behalf of the user
+            let _ = session.insert("osu_token", token_response.access_token().secret());
             
             let frontend_url = env::var("FRONTEND_URL").unwrap();
             HttpResponse::Found()
@@ -109,6 +111,7 @@ async fn oauth2_callback(
 #[post("/logout")]
 async fn oauth2_logout(session: Session) -> impl Responder {
     session.remove("user_id");
+    session.remove("osu_token");
     HttpResponse::Ok().body("Logged out")
 }
 

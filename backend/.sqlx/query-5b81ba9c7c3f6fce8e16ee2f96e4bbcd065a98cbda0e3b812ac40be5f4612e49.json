@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Players SET eliminated = 0 WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "5b81ba9c7c3f6fce8e16ee2f96e4bbcd065a98cbda0e3b812ac40be5f4612e49"
+}

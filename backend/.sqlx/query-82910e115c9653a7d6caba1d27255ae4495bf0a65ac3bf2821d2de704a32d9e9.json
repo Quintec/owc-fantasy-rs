@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO Teams (user_id, round) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "82910e115c9653a7d6caba1d27255ae4495bf0a65ac3bf2821d2de704a32d9e9"
+}

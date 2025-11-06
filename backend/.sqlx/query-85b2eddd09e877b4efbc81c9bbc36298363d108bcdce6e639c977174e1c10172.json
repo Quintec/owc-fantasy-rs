@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE PlayerScores SET score = ? WHERE player_id = ? AND round = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "85b2eddd09e877b4efbc81c9bbc36298363d108bcdce6e639c977174e1c10172"
+}
