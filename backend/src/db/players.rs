@@ -1,5 +1,5 @@
 use crate::db::models::Player;
-use sqlx::{mysql::MySqlQueryResult, Error, MySql, MySqlPool, QueryBuilder};
+use sqlx::{Error, MySql, MySqlPool, QueryBuilder, mysql::MySqlQueryResult, pool};
 
 pub async fn get_all_players(pool: &MySqlPool) -> Result<Vec<Player>, Error> {
     sqlx::query_as!(
@@ -124,6 +124,53 @@ pub async fn update_player_price(
             "INSERT INTO PlayerPrices (player_id, price, round) VALUES (?, ?, ?)",
             player_id,
             price,
+            round
+        )
+        .execute(pool)
+        .await
+    }
+}
+
+pub async fn get_player_round_score(pool: &MySqlPool, player_id: i32, round: String) -> Result<i32, Error> {
+    let player_score = sqlx::query!(
+        "SELECT score FROM PlayerScores WHERE player_id = ? AND round = ?",
+        player_id,
+        round
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(player_score.score)
+}
+
+pub async fn update_player_round_score(
+    pool: &MySqlPool,
+    player_id: i32,
+    round: String,
+    score: i32,
+) -> Result<MySqlQueryResult, Error> {
+    let player_score = sqlx::query!(
+        "SELECT * FROM PlayerScores WHERE player_id = ? AND round = ?",
+        player_id,
+        round
+    )
+    .fetch_one(pool)
+    .await;
+
+    if player_score.is_ok() {
+        sqlx::query!(
+            "UPDATE PlayerScores SET score = ? WHERE player_id = ? AND round = ?",
+            score,
+            player_id,
+            round
+        )
+        .execute(pool)
+        .await
+    } else {
+        sqlx::query!(
+            "INSERT INTO PlayerScores (player_id, score, round) VALUES (?, ?, ?)",
+            player_id,
+            score,
             round
         )
         .execute(pool)

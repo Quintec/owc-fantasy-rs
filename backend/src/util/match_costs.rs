@@ -177,6 +177,24 @@ pub fn process_match(
     let match_costs =
         users_performance_costs.match_costs(games.len(), &users_mods, tiebreaker_game);
 
+    // Build per-map stats: for each game, store each player's score and team
+    let maps: Vec<MapStats> = games
+        .iter()
+        .enumerate()
+        .map(|(i, game)| MapStats {
+            map_index: i,
+            scores: game
+                .scores
+                .iter()
+                .map(|s| MapPlayerScore {
+                    user_id: s.user_id,
+                    score: s.score,
+                    team: s.info.team,
+                })
+                .collect(),
+        })
+        .collect();
+
     let mvp_avatar_url = match_costs
         .iter()
         .reduce(|(mvp_user_id, mvp_entry), (user_id, entry)| {
@@ -222,6 +240,7 @@ pub fn process_match(
             blue,
             red,
             mvp_avatar_url,
+            maps: maps.clone(),
         }
     } else {
         let mut players: Vec<_> = match_costs
@@ -270,6 +289,7 @@ pub fn process_match(
                     win_count: teams_win_count.get(MatchTeam::Red),
                 },
                 mvp_avatar_url,
+                maps: maps.clone(),
             }
         } else {
             UserMatchCostEntry::sort(&mut players);
@@ -277,6 +297,7 @@ pub fn process_match(
             MatchResult::HeadToHead {
                 players,
                 mvp_avatar_url,
+                maps: maps.clone(),
             }
         }
     }
@@ -290,7 +311,7 @@ struct UsersMods {
 
 impl UsersMods {
     fn update(&mut self, user_id: u32, mods: &GameMods) {
-        let mods: GameModsIntermode = mods.iter().map(GameMod::intermode).collect();;
+        let mods: GameModsIntermode = mods.iter().map(GameMod::intermode).collect();
 
         self.entries
             .entry(user_id)
@@ -490,6 +511,19 @@ impl UserMatchCostEntry {
 }
 
 #[derive(Debug, Clone)]
+pub struct MapPlayerScore {
+    pub user_id: u32,
+    pub score: u32,
+    pub team: MatchTeam,
+}
+
+#[derive(Debug, Clone)]
+pub struct MapStats {
+    pub map_index: usize,
+    pub scores: Vec<MapPlayerScore>,
+}
+
+#[derive(Debug, Clone)]
 pub struct TeamResult {
     pub players: Vec<UserMatchCostEntry>,
     pub win_count: u32,
@@ -510,10 +544,12 @@ pub enum MatchResult {
         blue: TeamResult,
         red: TeamResult,
         mvp_avatar_url: Box<str>,
+        maps: Vec<MapStats>,
     },
     HeadToHead {
         players: Vec<UserMatchCostEntry>,
         mvp_avatar_url: Box<str>,
+        maps: Vec<MapStats>,
     },
     NoGames {
         description: String,

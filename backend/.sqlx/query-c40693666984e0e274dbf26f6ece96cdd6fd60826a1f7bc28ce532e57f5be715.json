@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO PlayerPrices (player_id, price, round) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "c40693666984e0e274dbf26f6ece96cdd6fd60826a1f7bc28ce532e57f5be715"
+}

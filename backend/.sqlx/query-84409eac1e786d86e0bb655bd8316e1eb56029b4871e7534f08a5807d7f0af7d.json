@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT price FROM PlayerPrices WHERE player_id = ? AND round = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "price",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "84409eac1e786d86e0bb655bd8316e1eb56029b4871e7534f08a5807d7f0af7d"
+}
