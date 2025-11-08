@@ -1,5 +1,6 @@
 use crate::db::models::Player;
-use sqlx::{Error, MySql, MySqlPool, QueryBuilder, mysql::MySqlQueryResult, pool};
+use sqlx::{Error, MySql, MySqlPool, QueryBuilder, mysql::MySqlQueryResult};
+use std::collections::HashMap;
 
 pub async fn get_all_players(pool: &MySqlPool) -> Result<Vec<Player>, Error> {
     sqlx::query_as!(
@@ -176,4 +177,147 @@ pub async fn update_player_round_score(
         .execute(pool)
         .await
     }
+}
+
+/// Create a team for a user from a list of player IDs with validation.
+///
+/// Validation rules:
+/// - Exactly 8 players
+/// - At most 2 players per country
+/// - Total price for the given round must be <= 100_000_000
+/// - Captain (if provided) must be one of the 8 players
+pub async fn create_team_from_players(
+    pool: &MySqlPool,
+    user_id: i32,
+    player_ids: Vec<i32>,
+    round: String,
+    captain_id: Option<i32>,
+) -> Result<MySqlQueryResult, Error> {
+    // Validate count
+    if player_ids.len() != 8 {
+        return Err(Error::Protocol(format!(
+            "validation failed: team must contain exactly 8 players (got {})",
+            player_ids.len()
+        )));
+    }
+
+    // Validate country limits and total price
+    let mut country_counts: HashMap<String, i32> = HashMap::new();
+    let mut total_price: i64 = 0;
+    const MAX_BUDGET: i64 = 100_000_000;
+
+    for pid in &player_ids {
+        let rec = sqlx::query!(
+            "SELECT country FROM Players WHERE id = ?",
+            pid
+        )
+        .fetch_one(pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::Protocol(format!(
+                "validation failed: player with ID {} does not exist",
+                pid
+            )),
+            _ => e,
+        })?;
+
+        let country = rec.country;
+        let count = country_counts.entry(country.clone()).or_insert(0);
+        *count += 1;
+        if *count > 2 {
+            return Err(Error::Protocol(format!(
+                "validation failed: more than 2 players from country {}",
+                country
+            )));
+        }
+
+        let price_rec = sqlx::query!(
+            "SELECT price FROM PlayerPrices WHERE player_id = ? AND round = ?",
+            pid,
+            &round
+        )
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e)?;
+
+        total_price += price_rec.price as i64;
+    }
+
+    if total_price > MAX_BUDGET {
+        return Err(Error::Protocol(format!(
+            "validation failed: total team price {} exceeds max budget {}",
+            total_price, MAX_BUDGET
+        )));
+    }
+
+    // create or update team
+    let mut tx = pool.begin().await?;
+
+    // Check if a team already exists for this user and round
+    let existing = sqlx::query!(
+        "SELECT id FROM Teams WHERE user_id = ? AND round = ?",
+        user_id,
+        &round
+    )
+    .fetch_optional(&mut *tx)
+    .await?;
+
+    let team_id: i32;
+    let mut final_res: Option<MySqlQueryResult> = None;
+
+    if let Some(rec) = existing {
+        team_id = rec.id;
+
+        // Update existing team with captain
+        let update_res = sqlx::query!(
+            "UPDATE Teams SET captain_id = ? WHERE id = ?",
+            captain_id,
+            team_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        final_res = Some(update_res);
+
+        // remove existing players for this team
+        let del_res = sqlx::query!(
+            "DELETE FROM TeamPlayers WHERE team_id = ?",
+            team_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        final_res = Some(del_res);
+    } else {
+        // create new team
+        let team_res = sqlx::query!(
+            "INSERT INTO Teams (user_id, round, captain_id) VALUES (?, ?, ?)",
+            user_id,
+            &round,
+            captain_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        team_id = team_res.last_insert_id() as i32;
+        final_res = Some(team_res);
+    }
+
+    // insert players
+    for pid in &player_ids {
+        let res = sqlx::query!(
+            "INSERT INTO TeamPlayers (team_id, player_id) VALUES (?, ?)",
+            team_id,
+            pid
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        final_res = Some(res);
+    }
+
+    // Commit the transaction
+    tx.commit().await?;
+
+    final_res.ok_or_else(|| Error::Protocol("no DB operation performed".to_string()))
 }
