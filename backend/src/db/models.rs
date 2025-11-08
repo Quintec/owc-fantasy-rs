@@ -6,13 +6,14 @@ pub struct User {
     pub username: String,
     pub avatar_url: String,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Player {
     pub id: i32,
     pub username: String,
     pub avatar_url: String,
     pub country: String,
     pub rank: i32,
+    pub eliminated: i8,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Team {

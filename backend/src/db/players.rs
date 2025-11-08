@@ -5,7 +5,7 @@ use std::collections::HashMap;
 pub async fn get_all_players(pool: &MySqlPool) -> Result<Vec<Player>, Error> {
     sqlx::query_as!(
         Player,
-        "SELECT id, username, avatar_url, country, `rank` FROM Players"
+        "SELECT id, username, avatar_url, country, `rank`, eliminated FROM Players"
     )
     .fetch_all(pool)
     .await
@@ -15,7 +15,7 @@ pub async fn get_remaining_players(pool: &MySqlPool) -> Result<Vec<Player>, Erro
     // get players with eliminated field false
     sqlx::query_as!(
         Player,
-        "SELECT id, username, avatar_url, country, `rank` FROM Players WHERE eliminated = 0"
+        "SELECT id, username, avatar_url, country, `rank`, eliminated FROM Players WHERE eliminated = 0"
     )
     .fetch_all(pool)
     .await
@@ -37,7 +37,7 @@ pub async fn uneliminate_player(pool: &MySqlPool, player_id: i32) -> Result<MySq
 pub async fn get_player_by_id(pool: &MySqlPool, id: i32) -> Result<Player, Error> {
     sqlx::query_as!(
         Player,
-        "SELECT id, username, avatar_url, country, `rank` FROM Players WHERE id = ?",
+        "SELECT id, username, avatar_url, country, `rank`, eliminated FROM Players WHERE id = ?",
         id
     )
     .fetch_one(pool)
@@ -46,12 +46,13 @@ pub async fn get_player_by_id(pool: &MySqlPool, id: i32) -> Result<Player, Error
 
 pub async fn create_player(pool: &MySqlPool, player: Player) -> Result<MySqlQueryResult, Error> {
     sqlx::query!(
-        "INSERT INTO Players (id, username, avatar_url, country, `rank`) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO Players (id, username, avatar_url, country, `rank`, eliminated) VALUES (?, ?, ?, ?, ?, ?)",
         player.id,
         player.username,
         player.avatar_url,
         player.country,
-        player.rank
+        player.rank,
+        player.eliminated
     )
     .execute(pool)
     .await
@@ -63,13 +64,14 @@ pub async fn bulk_create_players(
 ) -> Result<MySqlQueryResult, Error> {
     const BIND_LIMIT: usize = 65535;
     let mut query_builder: QueryBuilder<MySql> =
-        QueryBuilder::new("INSERT INTO Players(id, username, avatar_url, country, `rank`) ");
-    query_builder.push_values(players.into_iter().take(BIND_LIMIT / 5), |mut b, user| {
+        QueryBuilder::new("INSERT IGNORE INTO Players(id, username, avatar_url, country, `rank`, eliminated) ");
+    query_builder.push_values(players.into_iter().take(BIND_LIMIT / 6), |mut b, user| {
         b.push_bind(user.id)
             .push_bind(user.username)
             .push_bind(user.avatar_url)
             .push_bind(user.country)
-            .push_bind(user.rank);
+            .push_bind(user.rank)
+            .push_bind(user.eliminated);
     });
     let query = query_builder.build();
     query.execute(pool).await

@@ -33,8 +33,8 @@ export default function Navbar() {
             </Link>
           </li>
           <li>
-            <Link to="/players" className="hover:text-purple-400 transition-colors">
-              Players
+            <Link to="/faq" className="hover:text-purple-400 transition-colors">
+              FAQ
             </Link>
           </li>
         </ul>

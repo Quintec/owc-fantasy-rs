@@ -130,3 +130,44 @@ export async function getAllUserTeams(userId: number, config = {}) {
     }
 }
 
+// Admin helper: bulk create players
+export async function bulkCreatePlayers(players: PlayerProps[], config = {}) {
+    try {
+        const res = await axios.post(
+            `${API_BASE}/api/players/bulk_create`,
+            players,
+            {
+                ...defaultAxiosConfig,
+                ...config,
+            }
+        );
+        return res.data;
+    } catch (err) {
+        console.error('bulkCreatePlayers error:', err);
+        throw err;
+    }
+}
+
+// Admin helper: import players from participants markdown
+// Sends the markdown to backend, which handles OAuth and DB insertion
+export async function importPlayersFromParticipants(participantsText: string, config = {}) {
+    try {
+        const res = await axios.post(
+            `${API_BASE}/api/players/import_from_participants`,
+            { participants_text: participantsText },
+            {
+                ...defaultAxiosConfig,
+                ...config,
+            }
+        );
+        return res.data as {
+            players: PlayerProps[];
+            count: number;
+            errors: string[];
+        };
+    } catch (err) {
+        console.error('importPlayersFromParticipants error:', err);
+        throw err;
+    }
+}
+

@@ -18,3 +18,4 @@ rand = "0.8.5"
 chrono = "0.4"
 actix-cors = "0.6"
 rosu-v2 = { git = "https://github.com/MaxOhn/rosu-v2", branch = "lazer" }
+regex = "1"

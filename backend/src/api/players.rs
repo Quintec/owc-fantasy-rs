@@ -6,6 +6,7 @@ use crate::db::{
     },
 };
 use crate::middleware::auth::admin_middleware;
+use crate::scripts::players::players_import_from_participants;
 use actix_web::{delete, get, middleware::from_fn, post, web, HttpResponse, Responder};
 use serde::Deserialize;
 use sqlx::MySqlPool;
@@ -152,9 +153,11 @@ pub fn players_controller() -> actix_web::Scope {
         .service(players_get_remaining)
         .service(players_get_by_id)
         .service(players_eliminate)
+        .service(players_uneliminate)
         .service(players_create)
         .service(players_delete)
         .service(players_bulk_create)
+        .service(players_import_from_participants)
         .service(players_get_price)
         .service(players_set_price)
 }

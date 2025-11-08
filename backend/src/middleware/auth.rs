@@ -7,7 +7,7 @@ use actix_web::{
     Error,
 };
 
-const ADMIN_ID: i32 = 15458667;
+const ADMIN_IDS: &[i32] = &[15458667, 12835025];
 
 pub async fn auth_middleware(
     req: ServiceRequest,
@@ -45,7 +45,7 @@ pub async fn same_id_middleware(
         return Err(ErrorInternalServerError("Error parsing path id"));
     };
 
-    if user_id != path_id && user_id != ADMIN_ID {
+    if user_id != path_id && !ADMIN_IDS.contains(&user_id) {
         return Err(ErrorForbidden("Forbidden"));
     }
 
@@ -63,7 +63,7 @@ pub async fn admin_middleware(
         return Err(ErrorUnauthorized("Unauthorized, please sign in"));
     };
 
-    if user_id != ADMIN_ID {
+    if !ADMIN_IDS.contains(&user_id) {
         return Err(ErrorForbidden("Forbidden"));
     }
 

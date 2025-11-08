@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRound } from '../contexts/RoundContext';
-import { parseMultiplayerLinks, eliminatePlayers, unEliminatePlayers, getAllPlayers } from '../api/players';
+import { parseMultiplayerLinks, eliminatePlayers, unEliminatePlayers, getAllPlayers, importPlayersFromParticipants } from '../api/players';
 import type { PlayerProps } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -8,6 +8,7 @@ export default function Admin() {
   const { round } = useRound();
   const { user } = useAuth();
   const [linksText, setLinksText] = useState('');
+  const [participantsText, setParticipantsText] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [country, setCountry] = useState<string>('');
   const [players, setPlayers] = useState<PlayerProps[]>([]);
@@ -75,6 +76,25 @@ export default function Admin() {
 
   if (!user) return <div className="p-5 text-white">You must be logged in to use admin tools.</div>;
 
+  const importPlayers = async () => {
+    try {
+      setStatus('Sending participants text to backend for import...');
+      
+      // Backend handles OAuth and DB insertion
+      const result = await importPlayersFromParticipants(participantsText);
+      
+      setStatus(`Successfully imported ${result.count} players!${result.errors.length > 0 ? ` Errors: ${result.errors.slice(0, 3).join(', ')}` : ''}`);
+      
+      // Refresh players list
+      const updated = await getAllPlayers();
+      setPlayers(updated);
+      setParticipantsText(''); // Clear the textarea
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.error || err?.message || String(err);
+      setStatus('Error importing players: ' + errorMsg);
+    }
+  };
+
   return (
     <div className="p-6 text-white">
       <h1 className="text-2xl font-bold mb-4">Admin</h1>
@@ -82,6 +102,25 @@ export default function Admin() {
       <div className="mb-4">
         <label className="mr-2">Round (auto):</label>
         <span className="ml-2 font-semibold">{round}</span>
+      </div>
+
+      {/* Import Players Section */}
+      <div className="mb-6 p-4 bg-gray-800 rounded">
+        <h2 className="text-xl font-semibold mb-2">Import Players from Tournament</h2>
+        <p className="text-sm text-gray-400 mb-2">
+          Paste the participants table from the osu! wiki (markdown format).
+          The system will extract player IDs, fetch their data via OAuth2, and add them to the database.
+        </p>
+        <label className="block mb-1">Participants markdown:</label>
+        <textarea 
+          value={participantsText} 
+          onChange={(e) => setParticipantsText(e.target.value)} 
+          className="w-full bg-gray-900 p-2 rounded h-60 font-mono text-sm"
+          placeholder="Paste markdown table here, e.g.:&#10;| ::{ flag=US }:: | **United States** | **[player1](https://osu.ppy.sh/users/123)**, [player2](https://osu.ppy.sh/users/456) |"
+        />
+        <button onClick={importPlayers} className="mt-2 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">
+          Import Players
+        </button>
       </div>
 
       <div className="mb-4">
