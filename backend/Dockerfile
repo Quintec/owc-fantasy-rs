@@ -12,11 +12,13 @@ RUN mkdir src && \
     cargo build --release && \
     rm -rf src
 
-# Copy source code
+# Copy source code and sqlx cache
 COPY src ./src
+COPY .sqlx ./.sqlx
 
-# Build the application
+# Build the application in offline mode
 # Touch main.rs to ensure it's rebuilt
+ENV SQLX_OFFLINE=true
 RUN touch src/main.rs && \
     cargo build --release
 
