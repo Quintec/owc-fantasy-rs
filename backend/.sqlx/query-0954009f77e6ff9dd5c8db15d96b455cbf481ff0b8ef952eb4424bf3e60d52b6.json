@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT country FROM Players WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "country",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 20
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0954009f77e6ff9dd5c8db15d96b455cbf481ff0b8ef952eb4424bf3e60d52b6"
+}
