@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: owc-fantasy-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: owc_fantasy
+      MYSQL_USER: rustuser
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./setup.sql:/docker-entrypoint-initdb.d/02-setup.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: owc-fantasy-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: mysql://rustuser:password@db/owc_fantasy
+      SESSION_SECRET: ${SESSION_SECRET:-your-super-secret-session-key-here-make-it-long-and-random}
+      SESSION_SECURE: ${SESSION_SECURE:-false}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8080}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID}
+      OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET}
+      OAUTH_URL: https://osu.ppy.sh/oauth/authorize
+      OAUTH_TOKEN_URL: https://osu.ppy.sh/oauth/token
+      REDIRECT_URL: ${REDIRECT_URL:-http://localhost:8080/api/auth/callback}
+      ADMIN_CLIENT_ID: ${ADMIN_CLIENT_ID}
+      ADMIN_CLIENT_SECRET: ${ADMIN_CLIENT_SECRET}
+      RUST_LOG: ${RUST_LOG:-info}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/.env:/app/.env:ro
+
+volumes:
+  mysql_data:
