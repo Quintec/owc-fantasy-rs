@@ -4,7 +4,8 @@ use std::env;
 pub fn init() {
     dotenv().ok();
 
-    env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    println!("DATABASE_URL: {}", db_url);
     
     env::var("OAUTH_CLIENT_ID").expect("OAUTH_CLIENT_ID must be set");
     env::var("OAUTH_CLIENT_SECRET").expect("OAUTH_CLIENT_SECRET must be set");
