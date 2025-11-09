@@ -7,7 +7,8 @@ services:
       dockerfile: Dockerfile
     container_name: owc-fantasy-backend
     restart: unless-stopped
-    network_mode: "host"
+    ports:
+      - "8080:8080"
     environment:
       DATABASE_URL: mysql://rustuser:password@host.docker.internal/owc_fantasy
       SESSION_SECRET: ${SESSION_SECRET:-your-super-secret-session-key-here-make-it-long-and-random}
