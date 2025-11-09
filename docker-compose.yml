@@ -12,7 +12,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DATABASE_URL: mysql://rustuser:password@host.docker.internal/owc_fantasy
+      DATABASE_URL: mysql://rustuser:password@172.17.0.1/owc_fantasy
       SESSION_SECRET: ${SESSION_SECRET:-your-super-secret-session-key-here-make-it-long-and-random}
       SESSION_SECURE: ${SESSION_SECURE:-false}
       API_BASE_URL: ${API_BASE_URL:-http://localhost:8080}
