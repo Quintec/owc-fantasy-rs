@@ -267,17 +267,29 @@ pub async fn update_player_round_score(
     pool: &MySqlPool,
     player_id: i32,
     round: &Round,
-    score: i32,
+    total_score: i32,
+    match_count: i32,
 ) -> Result<(), sqlx::Error> {
     let round_str = format!("{:?}", round);
+    
+    // Calculate average score (rounded to nearest integer)
+    let avg_score = if match_count > 0 {
+        ((total_score as f32 / match_count as f32).round()) as i32
+    } else {
+        0
+    };
 
     sqlx::query!(
-        "INSERT INTO PlayerScores (player_id, round, score) VALUES (?, ?, ?) 
-         ON DUPLICATE KEY UPDATE score = ?",
+        "INSERT INTO PlayerScores (player_id, round, score, total_score, match_count) VALUES (?, ?, ?, ?, ?) 
+         ON DUPLICATE KEY UPDATE score = ?, total_score = ?, match_count = ?",
         player_id,
         round_str,
-        score,
-        score
+        avg_score,
+        total_score,
+        match_count,
+        avg_score,
+        total_score,
+        match_count
     )
     .execute(pool)
     .await?;
@@ -435,7 +447,7 @@ pub async fn create_team_from_players(
         // Initialize PlayerScore entry for this player/round if it doesn't exist
         // This ensures players always have a score entry (defaulting to 0)
         sqlx::query!(
-            "INSERT IGNORE INTO PlayerScores (player_id, round, score) VALUES (?, ?, 0)",
+            "INSERT IGNORE INTO PlayerScores (player_id, round, score, total_score, match_count) VALUES (?, ?, 0, 0, 0)",
             pid,
             &round
         )

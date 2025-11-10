@@ -15,7 +15,6 @@ export default function Admin() {
   const [status, setStatus] = useState<string | null>(null);
   const [country, setCountry] = useState<string>('');
   const [players, setPlayers] = useState<PlayerProps[]>([]);
-  const [scoreDiffs, setScoreDiffs] = useState<Record<number, number>>({});
 
   // Update selected round when current round changes
   useEffect(() => {
@@ -43,21 +42,9 @@ export default function Admin() {
       // Notify how many links were added
       setStatus(`Added ${links.length} multiplayer links`);
 
-      // Refresh players and compute score diffs
-      const before: Record<number, number> = {};
-      players.forEach(p => { before[p.id] = p.score ?? 0; });
-
+      // Refresh players and sort by score
       const updated = await getAllPlayers();
-      const diffs: Record<number, number> = {};
-      updated.forEach((p: PlayerProps) => {
-        const oldScore = before[p.id] ?? 0;
-        const newScore = (p.score ?? 0);
-        const delta = newScore - oldScore;
-        if (delta !== 0) diffs[p.id] = delta;
-      });
-
       setPlayers(updated);
-      setScoreDiffs(diffs);
 
       // Also append parse response for debugging if available
       if (res && typeof res === 'object') {
@@ -232,7 +219,7 @@ export default function Admin() {
       )}
 
       <div className="mt-6">
-        <h2 className="text-xl font-semibold mb-2">Players</h2>
+        <h2 className="text-xl font-semibold mb-2">Players (sorted by score)</h2>
         <div className="overflow-auto max-h-96 bg-gray-900 p-2 rounded">
           <table className="w-full table-auto">
             <thead>
@@ -241,12 +228,10 @@ export default function Admin() {
                 <th className="px-2">Player</th>
                 <th className="px-2">Country</th>
                 <th className="px-2">Score</th>
-                <th className="px-2">Δ</th>
               </tr>
             </thead>
             <tbody>
-              {players.map((p, idx) => {
-                const delta = scoreDiffs[p.id] ?? 0;
+              {[...players].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).map((p, idx) => {
                 return (
                   <tr key={p.id} className="border-t border-gray-800 text-white text-sm">
                     <td className="px-2 py-2">{idx + 1}</td>
@@ -256,8 +241,6 @@ export default function Admin() {
                     </td>
                     <td className="px-2 py-2">{p.country}</td>
                     <td className="px-2 py-2">{p.score ?? 0}</td>
-                    <td className={`px-2 py-2 ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-gray-400'}`}>
-                      {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '-'}</td>
                   </tr>
                 );
               })}

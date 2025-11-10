@@ -20,6 +20,9 @@ async fn parse_multiplayer(
     _session: Session,
 ) -> impl Responder {
     let mut failed_links: Vec<String> = Vec::new();
+    
+    // Map to accumulate scores: player_id -> (total_score, match_count)
+    let mut player_scores: std::collections::HashMap<i32, (i32, i32)> = std::collections::HashMap::new();
 
     for link in &body.links {
         let trimmed = link.trim();
@@ -47,31 +50,13 @@ async fn parse_multiplayer(
                         let results = crate::util::score_calc::calculate_teamvs_scores(&blue, &red, &maps);
                         println!("Scoring results for match {}:", link);
                         
-                        let mut all_success = true;
                         for r in results.iter() {
                             println!("User {} => {} points", r.user_id, r.points);
-
-                            match players::update_player_round_score(
-                                &data.pool,
-                                r.user_id as i32,
-                                &body.round,
-                                r.points as i32,
-                            )
-                            .await
-                            {
-                                Ok(_) => {
-                                    println!("Saved score for user {}", r.user_id);
-                                }
-                                Err(e) => {
-                                    println!("Failed to save score for user {}: {}", r.user_id, e);
-                                    all_success = false;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if !all_success {
-                            failed_links.push(full_link.clone());
+                            
+                            // Accumulate scores
+                            let entry = player_scores.entry(r.user_id as i32).or_insert((0, 0));
+                            entry.0 += r.points as i32; // Add to total score
+                            entry.1 += 1; // Increment match count
                         }
                     }
                     crate::util::match_costs::MatchResult::HeadToHead { .. } => {
@@ -90,11 +75,46 @@ async fn parse_multiplayer(
             }
         }
     }
+    
+    // Now save all accumulated scores to database
+    let mut save_errors = Vec::new();
+    for (player_id, (total_score, match_count)) in player_scores.iter() {
+        match players::update_player_round_score(
+            &data.pool,
+            *player_id,
+            &body.round,
+            *total_score,
+            *match_count,
+        )
+        .await
+        {
+            Ok(_) => {
+                let avg_score = *total_score as f32 / *match_count as f32;
+                println!("Saved score for player {}: total={}, matches={}, avg={:.2}", 
+                         player_id, total_score, match_count, avg_score);
+            }
+            Err(e) => {
+                println!("Failed to save score for player {}: {}", player_id, e);
+                save_errors.push(format!("Player {}: {}", player_id, e));
+            }
+        }
+    }
 
-    if failed_links.is_empty() {
-        HttpResponse::Ok().body("Multiplayer links processed successfully.")
+    if failed_links.is_empty() && save_errors.is_empty() {
+        HttpResponse::Ok().body(format!(
+            "Successfully processed {} matches and updated {} players.", 
+            body.links.len() - failed_links.len(), 
+            player_scores.len()
+        ))
     } else {
-        HttpResponse::BadRequest().body(format!("Failed to process the following links: {:?}", failed_links))
+        let mut error_msg = String::new();
+        if !failed_links.is_empty() {
+            error_msg.push_str(&format!("Failed to process links: {:?}\n", failed_links));
+        }
+        if !save_errors.is_empty() {
+            error_msg.push_str(&format!("Failed to save scores: {:?}", save_errors));
+        }
+        HttpResponse::BadRequest().body(error_msg)
     }
 }
 

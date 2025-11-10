@@ -7,7 +7,7 @@ use crate::db::{
 };
 use crate::middleware::auth::admin_middleware;
 use crate::scripts::players::{
-    players_import_from_participants, players_import_pscores, players_refresh_data,
+    players_import_from_participants, players_import_pscores,
     players_set_default_prices,
 };
 use actix_web::{delete, get, middleware::from_fn, post, web, HttpResponse, Responder};
@@ -182,7 +182,6 @@ pub fn players_controller() -> actix_web::Scope {
         .service(players_bulk_create)
         .service(players_import_from_participants)
         .service(players_import_pscores)
-        .service(players_refresh_data)
         .service(players_set_default_prices)
         .service(players_get_price)
         .service(players_set_price)
