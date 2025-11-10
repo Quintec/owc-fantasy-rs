@@ -1,4 +1,4 @@
-use crate::db::models::{Player, Team};
+use crate::db::models::{PlayerWithPrice, Team};
 
 use sqlx::{Error, MySqlPool};
 
@@ -27,26 +27,33 @@ pub async fn get_round_team_by_user_id(
     .await
 }
 
-pub async fn get_players_by_team_id(pool: &MySqlPool, team_id: i32) -> Result<Vec<Player>, Error> {
-    // get player ids from TeamPlayers
-    let player_ids: Vec<i32> = sqlx::query!(
-        "SELECT player_id FROM TeamPlayers WHERE team_id = ?",
-        team_id
-    )
-    .map(|record| record.player_id)
-    .fetch_all(pool)
-    .await?;
+pub async fn get_players_by_team_id(pool: &MySqlPool, team_id: i32) -> Result<Vec<PlayerWithPrice>, Error> {
+    // First, get the round for this team
+    let team = sqlx::query!("SELECT round FROM Teams WHERE id = ?", team_id)
+        .fetch_one(pool)
+        .await?;
+    
+    let round = team.round;
 
-    let player_ids_str = player_ids
-        .iter()
-        .map(|id| id.to_string())
-        .collect::<Vec<String>>()
-        .join(", ");
-
+    // Get players with prices for this round
     sqlx::query_as!(
-        Player,
-        "SELECT id, username, avatar_url, country, `rank`, eliminated FROM Players WHERE id IN (?)",
-        player_ids_str
+        PlayerWithPrice,
+        r#"
+        SELECT 
+            p.id as `id!: i32`,
+            p.username,
+            p.avatar_url,
+            p.country,
+            p.`rank` as `rank!: i32`,
+            p.eliminated as `eliminated!: i8`,
+            COALESCE(pp.price, 0) as `price!: i32`
+        FROM TeamPlayers tp
+        JOIN Players p ON tp.player_id = p.id
+        LEFT JOIN PlayerPrices pp ON p.id = pp.player_id AND pp.round = ?
+        WHERE tp.team_id = ?
+        "#,
+        round,
+        team_id
     )
     .fetch_all(pool)
     .await

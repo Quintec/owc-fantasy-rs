@@ -34,6 +34,19 @@ export async function getRemainingPlayers(config = {}) {
     }
 }
 
+export async function getRemainingPlayersWithPrices(round: string, config = {}) {
+    try {
+        const res = await axios.get(`${API_BASE}/api/players/remaining/${round}`, {
+            ...defaultAxiosConfig,
+            ...config,
+        });
+        return res.data as PlayerProps[];
+    } catch (err) {
+        console.error("getRemainingPlayers error:", err);
+        throw err;
+    }
+}
+
 export async function getTeamPlayers(teamId: number, config = {}) {
     try {
         const res = await axios.get(`${API_BASE}/api/teams/${teamId}`, {

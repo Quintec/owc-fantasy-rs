@@ -1,24 +1,44 @@
 import { useState, useEffect } from 'react';
 import { useRound } from '../contexts/RoundContext';
 import { parseMultiplayerLinks, eliminatePlayers, unEliminatePlayers, getAllPlayers, importPlayersFromParticipants } from '../api/players';
+import { importPScores } from '../api/pscores';
 import type { PlayerProps } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Admin() {
-  const { round } = useRound();
+  const { round: currentRound } = useRound();
   const { user } = useAuth();
+  const [selectedRound, setSelectedRound] = useState('ro16'); // Default to ro16
   const [linksText, setLinksText] = useState('');
   const [participantsText, setParticipantsText] = useState('');
+  const [pscoreText, setPscoreText] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [country, setCountry] = useState<string>('');
   const [players, setPlayers] = useState<PlayerProps[]>([]);
   const [scoreDiffs, setScoreDiffs] = useState<Record<number, number>>({});
 
+  // Update selected round when current round changes
+  useEffect(() => {
+    setSelectedRound(currentRound);
+  }, [currentRound]);
+
   const submitLinks = async () => {
     try {
       setStatus('Submitting links...');
-      const links = linksText.split('\n').map(l => l.trim()).filter(Boolean);
-      const res = await parseMultiplayerLinks(links, round);
+      // Parse input - can be either full URLs or just match IDs
+      const links = linksText.split('\n')
+        .map(l => l.trim())
+        .filter(Boolean)
+        .filter(l => l !== 'link') // Filter out the word "link"
+        .map(l => {
+          // If it's just a number (match ID), convert to full URL
+          if (/^\d+$/.test(l)) {
+            return `https://osu.ppy.sh/community/matches/${l}`;
+          }
+          // Otherwise assume it's already a full URL
+          return l;
+        });
+      const res = await parseMultiplayerLinks(links, selectedRound);
 
       // Notify how many links were added
       setStatus(`Added ${links.length} multiplayer links`);
@@ -95,13 +115,48 @@ export default function Admin() {
     }
   };
 
+  const importPlayerPrices = async () => {
+    try {
+      setStatus('Importing player prices from pScores...');
+      
+      const result = await importPScores(pscoreText, selectedRound);
+      
+      // Only show "not found" players, not eliminated ones (that's intentional)
+      const notFoundCount = result.skipped_not_found?.length || 0;
+      
+      setStatus(
+        `Successfully updated prices for ${result.updated_count} players!` +
+        (notFoundCount > 0 ? `\nNot found in database (${notFoundCount}): ${result.skipped_not_found.join(', ')}` : '') +
+        (result.errors?.length > 0 ? `\nErrors: ${result.errors.join(', ')}` : '')
+      );
+      
+      setPscoreText(''); // Clear the textarea
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.error || err?.message || String(err);
+      setStatus('Error importing pScores: ' + errorMsg);
+    }
+  };
+
   return (
     <div className="p-6 text-white">
       <h1 className="text-2xl font-bold mb-4">Admin</h1>
 
       <div className="mb-4">
-        <label className="mr-2">Round (auto):</label>
-        <span className="ml-2 font-semibold">{round}</span>
+        <label className="mr-2 font-semibold">Round:</label>
+        <select 
+          value={selectedRound} 
+          onChange={(e) => setSelectedRound(e.target.value)}
+          className="bg-gray-800 text-white px-3 py-1 rounded border border-gray-600"
+        >
+          <option value="ro64">RO64</option>
+          <option value="ro32">RO32</option>
+          <option value="ro16">RO16</option>
+          <option value="qf">Quarterfinals</option>
+          <option value="sf">Semifinals</option>
+          <option value="f">Finals</option>
+          <option value="gf">Grand Finals</option>
+        </select>
+        <span className="ml-4 text-sm text-gray-400">Current round: {currentRound}</span>
       </div>
 
       {/* Import Players Section */}
@@ -123,9 +178,35 @@ export default function Admin() {
         </button>
       </div>
 
+      {/* Import pScores Section */}
+      <div className="mb-6 p-4 bg-gray-800 rounded">
+        <h2 className="text-xl font-semibold mb-2">Updates Player Prices from pScores {`(for ${selectedRound})`}</h2>
+        <p className="text-sm text-gray-400 mb-2">
+          Ensure the data you use is the p-scores from the previous round (e.g. use p-scores from ro16 to update qf).
+          Paste player pScore data (username followed by pScore, one per line).
+          The system will calculate prices and update the database for the current round.
+          Players without pScores will automatically use prices from the previous round or a rank-based default.
+        </p>
+        <label className="block mb-1">pScore data:</label>
+        <textarea 
+          value={pscoreText} 
+          onChange={(e) => setPscoreText(e.target.value)} 
+          className="w-full bg-gray-900 p-2 rounded h-60 font-mono text-sm"
+          placeholder="Paste pScore data here, e.g.:&#10;scylla	1.692&#10;Raikouhou	1.659&#10;[MG]Arnold24x24	1.649"
+        />
+        <button onClick={importPlayerPrices} className="mt-2 bg-green-600 px-4 py-2 rounded hover:bg-green-700">
+          Import pScores & Calculate Prices 
+        </button>
+      </div>
+
       <div className="mb-4">
-        <label className="block mb-1">Multiplayer links (one per line):</label>
-        <textarea value={linksText} onChange={(e) => setLinksText(e.target.value)} className="w-full bg-gray-900 p-2 rounded h-40" />
+        <label className="block mb-1">Multiplayer links (one per line or match IDs):</label>
+        <textarea 
+          value={linksText} 
+          onChange={(e) => setLinksText(e.target.value)} 
+          className="w-full bg-gray-900 p-2 rounded h-40 font-mono text-sm"
+          placeholder="Can be full URLs or just match IDs:&#10;https://osu.ppy.sh/community/matches/119720145&#10;or just:&#10;119720145&#10;119768390"
+        />
         <button onClick={submitLinks} className="mt-2 bg-purple-600 px-4 py-2 rounded">Parse links</button>
       </div>
 

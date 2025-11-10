@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import UserList from "../components/UserList";
 import type { User } from "../types";
-import { getUsers } from "../api/users";
+import { getLeaderboard } from "../api/users";
 
 export default function Leaderboard() {
 
@@ -10,11 +10,10 @@ export default function Leaderboard() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const data = await getUsers();
+                const data = await getLeaderboard();
                 setUsers(data);
-                users.sort((a, b) => b.score - a.score);
             } catch (error) {
-                console.error("Error fetching users:", error);
+                console.error("Error fetching leaderboard:", error);
             }
         }
         fetchData();

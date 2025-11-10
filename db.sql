@@ -30,7 +30,8 @@ CREATE TABLE Teams (
     captain_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (captain_id) REFERENCES Players(id) ON DELETE SET NULL
+    FOREIGN KEY (captain_id) REFERENCES Players(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_user_round (user_id, round)
 );
 
 

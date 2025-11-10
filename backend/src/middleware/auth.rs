@@ -7,13 +7,14 @@ use actix_web::{
     Error,
 };
 
-const ADMIN_IDS: &[i32] = &[15458667, 12835025];
+const ADMIN_IDS: &[i32] = &[12835025, 15458667];
 
 pub async fn auth_middleware(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
-    if req.path().starts_with("/api/auth") {
+    // Allow auth endpoints and public leaderboard
+    if req.path().starts_with("/api/auth") || req.path() == "/api/users/leaderboard" {
         return next.call(req).await;
     }
 
@@ -37,8 +38,12 @@ pub async fn same_id_middleware(
         return Err(ErrorUnauthorized("Unauthorized, please sign in"));
     };
 
-    let Some(path_id) = req.match_info().get("id") else {
-        return Err(ErrorInternalServerError("Expected id in path"));
+    // Try to get path_id from either "id" or "user_id" parameter
+    let path_id = req.match_info().get("id")
+        .or_else(|| req.match_info().get("user_id"));
+    
+    let Some(path_id) = path_id else {
+        return Err(ErrorInternalServerError("Expected id or user_id in path"));
     };
 
     let Ok(path_id) = path_id.parse::<i32>() else {

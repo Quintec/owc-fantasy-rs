@@ -1,9 +1,8 @@
 use crate::db::teams::{
     get_round_team_by_user_id, get_teams_by_user_id,
 };
-use crate::db::users::{get_all_users, get_user_by_id};
-use crate::middleware::auth::same_id_middleware;
-use actix_web::{get, middleware::from_fn, post, web, HttpResponse, Responder};
+use crate::db::users::{get_all_users, get_user_by_id, get_leaderboard, get_leaderboard_breakdown, get_user_data_counts};
+use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::MySqlPool;
 
 use crate::state::AppState;
@@ -79,11 +78,48 @@ async fn users_get_team_by_round(
     }
 }
 
+#[get("/leaderboard")]
+async fn users_get_leaderboard(data: web::Data<AppState>) -> impl Responder {
+    let pool: &MySqlPool = &data.pool;
+
+    let leaderboard = get_leaderboard(pool).await;
+    match leaderboard {
+        Ok(users) => HttpResponse::Ok().json(users),
+        Err(_) => HttpResponse::InternalServerError().body("Error fetching leaderboard"),
+    }
+}
+
+#[get("/leaderboard/debug")]
+async fn users_get_leaderboard_debug(data: web::Data<AppState>) -> impl Responder {
+    let pool: &MySqlPool = &data.pool;
+
+    let breakdown = get_leaderboard_breakdown(pool).await;
+    match breakdown {
+        Ok(data) => HttpResponse::Ok().json(data),
+        Err(_) => HttpResponse::InternalServerError().body("Error fetching leaderboard breakdown"),
+    }
+}
+
+#[get("/{user_id}/debug")]
+async fn users_get_debug_counts(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
+    let pool: &MySqlPool = &data.pool;
+    let user_id = path.into_inner();
+
+    let counts = get_user_data_counts(pool, user_id).await;
+    match counts {
+        Ok(data) => HttpResponse::Ok().json(data),
+        Err(_) => HttpResponse::InternalServerError().body("Error fetching user data counts"),
+    }
+}
+
 pub fn users_controller() -> actix_web::Scope {
     web::scope("/users")
         .service(users_get)
         .service(users_get_me)
+        .service(users_get_leaderboard)
+        .service(users_get_leaderboard_debug)
         .service(users_get_by_id)
+        .service(users_get_debug_counts)
         .service(users_get_teams)
         .service(users_get_team_by_round)
 }

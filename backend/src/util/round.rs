@@ -1,12 +1,19 @@
 use chrono::{TimeZone, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Tournament round enum. Use this when interacting with round values in Rust.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Round {
+	#[serde(rename = "ro16")]
 	Ro16,
+	#[serde(rename = "qf")]
 	Qf,
+	#[serde(rename = "sf")]
 	Sf,
+	#[serde(rename = "f")]
 	F,
+	#[serde(rename = "gf")]
 	Gf,
 }
 

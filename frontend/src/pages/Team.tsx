@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import Player from "../components/Player";
 import type { PlayerProps } from "../types";
 import PlaceholderPlayer from "../components/PlaceholderPlayer";
-import { getRemainingPlayers, getTeamPlayers } from "../api/players";
-import { postPlayers, getUserTeamByRound  } from "../api/users";
+import { getRemainingPlayersWithPrices } from "../api/players";
+import { postPlayers, getUserTeamByRound, getTeamPlayersWithCaptain } from "../api/users";
 import { useAuth } from "../contexts/AuthContext";
 import { useRound } from "../contexts/RoundContext";
 
@@ -14,7 +14,7 @@ export default function Team() {
     const [error, setError] = useState<string | null>(null);
     const [drafting, setDraft] = useState(false);
     const [queryPlayer, setPlayerQuery] = useState("");
-    const [balance, setBalance] = useState(10000000); // replace with API call later
+    const [balance, setBalance] = useState(100000000); // 100M default budget
     const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
     
     // drafting window is provided by RoundContext (Mon 00:00 UTC -> Fri 00:00 UTC)
@@ -47,29 +47,36 @@ export default function Team() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const allPlayersData = await getRemainingPlayers();
+                const allPlayersData = await getRemainingPlayersWithPrices(round);
 
-                // backend /users/{id}/teams/{round} returns a Team object (or 404)
-                // so fetch the team first and then fetch team players by team id.
-                const teamOrPlayers = await getUserTeamByRound(user.id, round);
+                // Fetch the user's team for this round
                 let userPlayersData: PlayerProps[] = [];
-                if (Array.isArray(teamOrPlayers)) {
-                    // older API shape: endpoint returned array of players
-                    userPlayersData = teamOrPlayers;
-                } else if (teamOrPlayers && (teamOrPlayers as any).id) {
-                    // team object returned, fetch players by team id
-                    const teamId = (teamOrPlayers as any).id as number;
-                    userPlayersData = await getTeamPlayers(teamId);
-                } else {
+                try {
+                    const team = await getUserTeamByRound(user.id, round);
+                    if (team && team.id) {
+                        userPlayersData = await getTeamPlayersWithCaptain(team.id, team.captain_id);
+                    }
+                } catch (err) {
+                    // 404 or other error means no team exists yet - that's okay
+                    console.log("No team found for user, starting with empty team");
                     userPlayersData = [];
                 }
                 
                 // Update drafted status based on userPlayers
                 const updateDraftedStatus = (allPlayers: PlayerProps[], userPlayers: PlayerProps[]) => {
-                    return allPlayers.map(player => ({
-                        ...player,
-                        drafted: userPlayers.some(userPlayer => userPlayer.id === player.id)
-                    }));
+                    // Create a map of user players with their order and captain status
+                    const userPlayerMap = new Map(userPlayers.map((p, idx) => [p.id, { ...p, order: idx }]));
+                    
+                    return allPlayers.map(player => {
+                        const userPlayer = userPlayerMap.get(player.id);
+                        return {
+                            ...player,
+                            drafted: !!userPlayer,
+                            captain: userPlayer?.captain || false,
+                            // Store the order for sorting later
+                            draftOrder: userPlayer?.order ?? 999999
+                        };
+                    });
                 };
                 
                 setUserPlayers(userPlayersData);
@@ -144,13 +151,31 @@ export default function Team() {
 
         // If player is already drafted, undraft them
         if (player.drafted === true) {
-            setAllPlayers(prevPlayers => 
-                prevPlayers.map(player => 
-                    player.id === playerId 
-                        ? { ...player, drafted: !player.drafted }
-                        : player
-                )
-            );
+            setAllPlayers(prevPlayers => {
+                // First, undraft the player
+                const withUndrafted = prevPlayers.map(p => 
+                    p.id === playerId 
+                        ? { ...p, drafted: false, captain: false, draftOrder: undefined }
+                        : p
+                );
+                
+                // Get remaining drafted players and reorder them
+                const stillDrafted = withUndrafted
+                    .filter(p => p.drafted)
+                    .sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999));
+                
+                // Create a map of updated draftOrder values
+                const draftOrderMap = new Map(stillDrafted.map((p, i) => [p.id, { draftOrder: i, captain: i === 0 }]));
+                
+                // Update only the draftOrder and captain fields
+                return withUndrafted.map(p => {
+                    const update = draftOrderMap.get(p.id);
+                    if (update) {
+                        return { ...p, ...update };
+                    }
+                    return p;
+                });
+            });
             setBalance((currentBalance) => currentBalance + player.price);
             return;
         }
@@ -180,17 +205,21 @@ export default function Team() {
         // All checks passed, draft the player
         setBalance((currentBalance) => currentBalance - player.price);
 
+        // Assign draftOrder based on current number of drafted players
+        const newDraftOrder = draftedPlayers.length;
+        const isCaptain = newDraftOrder === 0; // First player is captain
+
         setAllPlayers(prevPlayers => 
             prevPlayers.map(player => 
                 player.id === playerId 
-                    ? { ...player, drafted: !player.drafted }
+                    ? { ...player, drafted: !player.drafted, draftOrder: newDraftOrder, captain: isCaptain }
                     : player
             )
         );
     }
 
     const finalizeDraft = async () => {
-        let draftedPlayers = players.filter(p => p.drafted === true);
+        let draftedPlayers = players.filter(p => p.drafted === true).sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999));
         let draftCount = draftedPlayers.length;
         if (draftCount !== 8) {
             showNotification("You have not drafted a full team", 'error');
@@ -204,11 +233,12 @@ export default function Team() {
 
         // Prepare player IDs in the order they appear (captain is first)
         const playerIds = draftedPlayers.map(p => p.id);
+        const captainId = playerIds[0]; // First player is the captain
 
         try {
             setLoading(true);
-            // Call backend to create team and add players
-            const createdTeam = await postPlayers(user.id, playerIds, round);
+            // Call backend to create team and add players with captain
+            const createdTeam = await postPlayers(user.id, playerIds, round, captainId);
             setUserPlayers(createdTeam);
             setDraft(false);
             showNotification('Team submitted successfully', 'success');
@@ -222,7 +252,17 @@ export default function Team() {
 
     const resetDraft = () => {
         setAllPlayers(players.map((p) => ({ ...p, drafted: false })));
-        setBalance(10000000);
+        setBalance(100000000);
+    }
+
+    const startDrafting = () => {
+        // Calculate balance: 100M - sum of already drafted players
+        const draftedPlayers = players.filter(p => p.drafted === true);
+        const totalDraftedValue = draftedPlayers.reduce((sum, player) => sum + player.price, 0);
+        const remainingBalance = 100000000 - totalDraftedValue;
+        
+        setBalance(remainingBalance);
+        setDraft(true);
     }
 
     if (drafting) {
@@ -283,7 +323,7 @@ export default function Team() {
                     <h2 className="text-gray-400 text-sm">Drag to select captain</h2>
                     <div className="w-full">
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto mt-5 auto-rows-fr">
-                        {players.filter(p => p.drafted).map((player, idx) => (
+                        {players.filter(p => p.drafted).sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999)).map((player, idx) => (
                             <div
                                 key={player.id}
                                 draggable
@@ -295,18 +335,26 @@ export default function Team() {
                                     e.preventDefault();
                                     const draggedId = Number(e.dataTransfer.getData('text/plain'));
                                     if (!draggedId || draggedId === player.id) return;
-                                    const draftedOrdered = players.filter(p => p.drafted);
+                                    const draftedOrdered = players.filter(p => p.drafted).sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999));
                                     const fromIdx = draftedOrdered.findIndex(p => p.id === draggedId);
                                     const toIdx = draftedOrdered.findIndex(p => p.id === player.id);
                                     if (fromIdx === -1 || toIdx === -1) return;
                                     const reordered = [...draftedOrdered];
                                     const [moved] = reordered.splice(fromIdx, 1);
                                     reordered.splice(toIdx, 0, moved);
-                                    // write back to players keeping undrafted after
-                                    const undrafted = players.filter(p => !p.drafted);
-                                    // mark captain = first
-                                    const withCaptain = reordered.map((p, i) => ({ ...p, captain: i === 0 }));
-                                    setAllPlayers([...withCaptain, ...undrafted]);
+                                    
+                                    // Update only the draftOrder and captain fields, don't reorder the main array
+                                    const draftOrderMap = new Map(reordered.map((p, i) => [p.id, { draftOrder: i, captain: i === 0 }]));
+                                    
+                                    setAllPlayers(prevPlayers => 
+                                        prevPlayers.map(p => {
+                                            const update = draftOrderMap.get(p.id);
+                                            if (update) {
+                                                return { ...p, ...update };
+                                            }
+                                            return p;
+                                        })
+                                    );
                                 }}
                                 className={`relative`}
                             >
@@ -335,15 +383,25 @@ export default function Team() {
                                 onDrop={(e) => {
                                     e.preventDefault();
                                     const draggedId = Number(e.dataTransfer.getData('text/plain'));
-                                    const draftedOrdered = players.filter(p => p.drafted);
+                                    const draftedOrdered = players.filter(p => p.drafted).sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999));
                                     const fromIdx = draftedOrdered.findIndex(p => p.id === draggedId);
                                     if (fromIdx === -1) return;
                                     const reordered = [...draftedOrdered];
                                     const [moved] = reordered.splice(fromIdx, 1);
                                     reordered.push(moved);
-                                    const undrafted = players.filter(p => !p.drafted);
-                                    const withCaptain = reordered.map((p, i) => ({ ...p, captain: i === 0 }));
-                                    setAllPlayers([...withCaptain, ...undrafted]);
+                                    
+                                    // Update only the draftOrder and captain fields, don't reorder the main array
+                                    const draftOrderMap = new Map(reordered.map((p, i) => [p.id, { draftOrder: i, captain: i === 0 }]));
+                                    
+                                    setAllPlayers(prevPlayers => 
+                                        prevPlayers.map(p => {
+                                            const update = draftOrderMap.get(p.id);
+                                            if (update) {
+                                                return { ...p, ...update };
+                                            }
+                                            return p;
+                                        })
+                                    );
                                 }}
                                 className="h-full"
                             >
@@ -358,7 +416,17 @@ export default function Team() {
                         <button className="bg-red-700 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/6 ml-5" onClick={resetDraft}>Reset</button>
                     </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
-                {players.filter(p => p.username.toLowerCase().includes(queryPlayer) || p.country.toLowerCase().includes(queryPlayer)).map((player) => (
+                {players
+                    .filter(p => p.username.toLowerCase().includes(queryPlayer) || p.country.toLowerCase().includes(queryPlayer))
+                    .sort((a, b) => {
+                        // Sort by country first
+                        if (a.country !== b.country) {
+                            return a.country.localeCompare(b.country);
+                        }
+                        // Then by rank for same country
+                        return a.rank - b.rank;
+                    })
+                    .map((player) => (
                     <Player 
                         key={player.id}
                         id={player.id}
@@ -378,16 +446,14 @@ export default function Team() {
         )
     }
 
-    console.log(players)
-
     return (
         <div className="p-5 flex flex-col items-center">
             <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
-                {userPlayers.map((player, idx) => (
+                {userPlayers.map((player) => (
                     <div key={player.id} className="relative">
-                        {idx === 0 && (
+                        {player.captain && (
                             <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow z-10">CAPTAIN</div>
                         )}
                         <Player 
@@ -401,7 +467,7 @@ export default function Team() {
                         />
                     </div>
                 ))}
-                {Array.from({length: Math.max(0, 8 - players.filter(p => p.drafted).length)}).map((_, i) => (
+                {Array.from({length: Math.max(0, 8 - userPlayers.length)}).map((_, i) => (
                     <PlaceholderPlayer key={`ph-${i}`} />
                 ))}
             </div>
@@ -409,7 +475,7 @@ export default function Team() {
                 <div className="my-5 text-center w-full">
                     <button 
                         className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4 transition-colors" 
-                        onClick={() => setDraft(true)}
+                        onClick={startDrafting}
                     >
                         Edit
                     </button>
