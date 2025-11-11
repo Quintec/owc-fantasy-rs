@@ -417,12 +417,8 @@ export default function Team() {
                 {players
                     .filter(p => p.username.toLowerCase().includes(queryPlayer.toLowerCase()) || p.country.toLowerCase().includes(queryPlayer.toLowerCase()))
                     .sort((a, b) => {
-                        // Sort by country first
-                        if (a.country !== b.country) {
-                            return a.country.localeCompare(b.country);
-                        }
-                        // Then by rank for same country
-                        return a.rank - b.rank;
+                        // Sort by price (highest to lowest)
+                        return (b.price || 0) - (a.price || 0);
                     })
                     .map((player) => (
                     <Player 
