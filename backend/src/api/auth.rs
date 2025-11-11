@@ -8,17 +8,15 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
-    RedirectUrl, Scope, TokenResponse, TokenUrl,
+    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
+    PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
 use reqwest;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 struct OAuth2Callback {
-    code: Option<String>,
-    error: Option<String>,
-    error_description: Option<String>,
+    code: String,
 }
 
 async fn get_oauth2_client() -> BasicClient {
@@ -34,14 +32,15 @@ async fn get_oauth2_client() -> BasicClient {
 #[get("/login")]
 async fn oauth2_login(session: Session) -> impl Responder {
     let client = get_oauth2_client().await;
-    let (auth_url, csrf_token) = client
-        .authorize_url(CsrfToken::new_random)
-        .add_scope(Scope::new("public".to_string()))
-        .url();
-
-    if let Err(_) = session.insert("csrf_token", csrf_token.secret()) {
+    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
+    if let Err(_) = session.insert("pkce_verifier", pkce_verifier.secret()) {
         return HttpResponse::InternalServerError().body("Auth challenge error");
     }
+    let (auth_url, _csrf_token) = client
+        .authorize_url(CsrfToken::new_random)
+        .add_scope(Scope::new("public".to_string()))
+        .set_pkce_challenge(pkce_challenge)
+        .url();
 
     HttpResponse::Found()
         .append_header(("Location", auth_url.to_string()))
@@ -54,25 +53,17 @@ async fn oauth2_callback(
     session: Session,
     data: web::Data<AppState>,
 ) -> impl Responder {
-    // Check if OAuth provider returned an error
-    if let Some(error) = &query.error {
-        let error_desc = query.error_description.as_deref().unwrap_or("Unknown error");
-        return HttpResponse::BadRequest().body(format!("OAuth error: {} - {}", error, error_desc));
-    }
-
-    // Ensure we have the code parameter
-    let Some(code) = &query.code else {
-        return HttpResponse::BadRequest().body("Missing authorization code");
-    };
-
     let pool = &data.pool;
     let client = get_oauth2_client().await;
-    
-    // Remove CSRF token from session
-    session.remove("csrf_token");
-    
+    let pkce_verifier_secret = session.get::<String>("pkce_verifier").unwrap_or(None);
+    let Some(pkce_verifier_secret_data) = pkce_verifier_secret else {
+        return HttpResponse::InternalServerError().body("Auth flow error");
+    };
+    session.remove("pkce_verifier");
+    let pkce_verifier = PkceCodeVerifier::new(pkce_verifier_secret_data);
     let token_result = client
-        .exchange_code(AuthorizationCode::new(code.clone()))
+        .exchange_code(AuthorizationCode::new(query.code.clone()))
+        .set_pkce_verifier(pkce_verifier)
         .request_async(async_http_client)
         .await;
 
