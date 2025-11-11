@@ -415,7 +415,7 @@ export default function Team() {
                     </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
                 {players
-                    .filter(p => p.username.toLowerCase().includes(queryPlayer) || p.country.toLowerCase().includes(queryPlayer))
+                    .filter(p => p.username.toLowerCase().includes(queryPlayer.toLowerCase()) || p.country.toLowerCase().includes(queryPlayer.toLowerCase()))
                     .sort((a, b) => {
                         // Sort by country first
                         if (a.country !== b.country) {
