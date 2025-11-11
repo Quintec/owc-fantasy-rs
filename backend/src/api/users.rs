@@ -89,37 +89,12 @@ async fn users_get_leaderboard(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
-#[get("/leaderboard/debug")]
-async fn users_get_leaderboard_debug(data: web::Data<AppState>) -> impl Responder {
-    let pool: &MySqlPool = &data.pool;
-
-    let breakdown = get_leaderboard_breakdown(pool).await;
-    match breakdown {
-        Ok(data) => HttpResponse::Ok().json(data),
-        Err(_) => HttpResponse::InternalServerError().body("Error fetching leaderboard breakdown"),
-    }
-}
-
-#[get("/{user_id}/debug")]
-async fn users_get_debug_counts(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
-    let pool: &MySqlPool = &data.pool;
-    let user_id = path.into_inner();
-
-    let counts = get_user_data_counts(pool, user_id).await;
-    match counts {
-        Ok(data) => HttpResponse::Ok().json(data),
-        Err(_) => HttpResponse::InternalServerError().body("Error fetching user data counts"),
-    }
-}
-
 pub fn users_controller() -> actix_web::Scope {
     web::scope("/users")
         .service(users_get)
         .service(users_get_me)
         .service(users_get_leaderboard)
-        .service(users_get_leaderboard_debug)
         .service(users_get_by_id)
-        .service(users_get_debug_counts)
         .service(users_get_teams)
         .service(users_get_team_by_round)
 }

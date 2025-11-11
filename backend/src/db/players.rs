@@ -161,7 +161,7 @@ pub async fn bulk_create_players(
 ) -> Result<MySqlQueryResult, Error> {
     const BIND_LIMIT: usize = 65535;
     let mut query_builder: QueryBuilder<MySql> =
-        QueryBuilder::new("INSERT IGNORE INTO Players(id, username, avatar_url, country, `rank`, eliminated) ");
+        QueryBuilder::new("INSERT INTO Players(id, username, avatar_url, country, `rank`, eliminated) ");
     query_builder.push_values(players.into_iter().take(BIND_LIMIT / 6), |mut b, user| {
         b.push_bind(user.id)
             .push_bind(user.username)
@@ -170,6 +170,7 @@ pub async fn bulk_create_players(
             .push_bind(user.rank)
             .push_bind(user.eliminated);
     });
+    query_builder.push(" AS new ON DUPLICATE KEY UPDATE username = new.username, avatar_url = new.avatar_url, country = new.country, `rank` = new.`rank`");
     let query = query_builder.build();
     query.execute(pool).await
 }
@@ -404,8 +405,8 @@ pub async fn create_team_from_players(
     // Use INSERT ... ON DUPLICATE KEY UPDATE to handle upsert atomically
     // This prevents race conditions and works with UNIQUE(user_id, round) constraint
     let team_res = sqlx::query!(
-        "INSERT INTO Teams (user_id, round, captain_id) VALUES (?, ?, ?)
-         ON DUPLICATE KEY UPDATE captain_id = VALUES(captain_id)",
+        "INSERT INTO Teams (user_id, round, captain_id) VALUES (?, ?, ?) AS new
+         ON DUPLICATE KEY UPDATE captain_id = new.captain_id",
         user_id,
         &round,
         captain_id
@@ -446,8 +447,9 @@ pub async fn create_team_from_players(
 
         // Initialize PlayerScore entry for this player/round if it doesn't exist
         // This ensures players always have a score entry (defaulting to 0)
+        // ON DUPLICATE KEY UPDATE with no-op keeps existing scores intact
         sqlx::query!(
-            "INSERT IGNORE INTO PlayerScores (player_id, round, score, total_score, match_count) VALUES (?, ?, 0, 0, 0)",
+            "INSERT INTO PlayerScores (player_id, round, score, total_score, match_count) VALUES (?, ?, 0, 0, 0) ON DUPLICATE KEY UPDATE player_id = player_id",
             pid,
             &round
         )

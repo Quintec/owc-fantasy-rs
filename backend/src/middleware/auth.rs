@@ -38,12 +38,8 @@ pub async fn same_id_middleware(
         return Err(ErrorUnauthorized("Unauthorized, please sign in"));
     };
 
-    // Try to get path_id from either "id" or "user_id" parameter
-    let path_id = req.match_info().get("id")
-        .or_else(|| req.match_info().get("user_id"));
-    
-    let Some(path_id) = path_id else {
-        return Err(ErrorInternalServerError("Expected id or user_id in path"));
+    let Some(path_id) = req.match_info().get("user_id") else {
+        return Err(ErrorInternalServerError("Expected user_id in path"));
     };
 
     let Ok(path_id) = path_id.parse::<i32>() else {

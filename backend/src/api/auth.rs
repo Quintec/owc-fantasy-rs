@@ -37,7 +37,6 @@ async fn oauth2_login(session: Session) -> impl Responder {
     let (auth_url, csrf_token) = client
         .authorize_url(CsrfToken::new_random)
         .add_scope(Scope::new("public".to_string()))
-        .add_scope(Scope::new("identify".to_string()))
         .url();
 
     if let Err(_) = session.insert("csrf_token", csrf_token.secret()) {

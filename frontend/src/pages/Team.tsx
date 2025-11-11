@@ -26,9 +26,7 @@ export default function Team() {
     };
 
     const { user, loading: authLoading } = useAuth();
-    // const { round, isDraftOpen } = useRound();
-    const round = "ro16";
-    const isDraftOpen = true;
+    const { round, isDraftOpen } = useRound();
 
     useEffect(() => {
         if (authLoading) {
