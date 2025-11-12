@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT id, username, avatar_url, country, `rank` FROM Players",
+  "query": "SELECT id, username, avatar_url, country, `rank`, eliminated FROM Players WHERE eliminated = 0",
   "describe": {
     "columns": [
       {
@@ -52,6 +52,16 @@
           "char_set": 63,
           "max_size": 11
         }
+      },
+      {
+        "ordinal": 5,
+        "name": "eliminated",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "char_set": 63,
+          "max_size": 1
+        }
       }
     ],
     "parameters": {
@@ -62,8 +72,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "3a95aaed195e821830f94b7a7a81517237a56d22026cdce753b6d31279247009"
+  "hash": "764464c03119680c6c1a3f7e0a78d2f6fd41c37c7618b8b73b94bfe36905158c"
 }

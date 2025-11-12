@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT round FROM Teams WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "round",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL | ENUM | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 16
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5c0d87a568598d5124675b0648ceeabdc5838a2afa5b00f2e9431976a6821238"
+}

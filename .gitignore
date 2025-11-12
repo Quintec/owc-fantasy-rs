@@ -4,3 +4,6 @@
 **/.env
 /target
 */target
+
+
+*.tar

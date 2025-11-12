@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO Teams (user_id, round, captain_id) VALUES (?, ?, ?) AS new\n         ON DUPLICATE KEY UPDATE captain_id = new.captain_id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "c6a33fc2d1bd35d1932ba2f7e38816e452f3dce75d25af92a4bd2bd5334e231d"
+}

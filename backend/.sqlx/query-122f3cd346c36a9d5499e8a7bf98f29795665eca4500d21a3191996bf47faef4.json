@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO Players (id, username, avatar_url, country, `rank`, eliminated) VALUES (?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "122f3cd346c36a9d5499e8a7bf98f29795665eca4500d21a3191996bf47faef4"
+}

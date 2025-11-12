@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO PlayerScores (player_id, round, score, total_score, match_count) VALUES (?, ?, ?, ?, ?) \n         ON DUPLICATE KEY UPDATE score = ?, total_score = ?, match_count = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "51390e1fc2dcbc08de26df20403a1b0bca335297158b6d35a8a6f4d7577856f5"
+}

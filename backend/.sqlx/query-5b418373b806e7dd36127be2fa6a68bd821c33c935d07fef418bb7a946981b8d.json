@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT id, username, avatar_url, country, `rank` FROM Players WHERE id IN (?)",
+  "query": "\n        SELECT \n            p.id,\n            p.username,\n            p.avatar_url,\n            p.country,\n            p.`rank`,\n            p.eliminated,\n            pp_current.price as current_price,\n            pp_prev.price as prev_price\n        FROM Players p\n        LEFT JOIN PlayerPrices pp_current ON p.id = pp_current.player_id AND pp_current.round = ?\n        LEFT JOIN PlayerPrices pp_prev ON p.id = pp_prev.player_id AND pp_prev.round = ?\n        WHERE p.eliminated = 0\n        ",
   "describe": {
     "columns": [
       {
@@ -52,18 +52,51 @@
           "char_set": 63,
           "max_size": 11
         }
+      },
+      {
+        "ordinal": 5,
+        "name": "eliminated",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "char_set": 63,
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "current_price",
+        "type_info": {
+          "type": "Long",
+          "flags": "NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "prev_price",
+        "type_info": {
+          "type": "Long",
+          "flags": "NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 11
+        }
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false,
       false,
       false,
       false,
-      false
+      false,
+      false,
+      true,
+      true
     ]
   },
-  "hash": "1ecf273ddcc4b5a40becca8db3db8880320115bd6f31132b31c2263ef0641eee"
+  "hash": "5b418373b806e7dd36127be2fa6a68bd821c33c935d07fef418bb7a946981b8d"
 }

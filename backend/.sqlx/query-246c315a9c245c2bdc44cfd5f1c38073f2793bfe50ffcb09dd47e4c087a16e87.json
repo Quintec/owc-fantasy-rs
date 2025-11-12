@@ -1,0 +1,69 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        SELECT \n            u.id as user_id,\n            t.id as team_id,\n            tp.player_id,\n            ps.score,\n            t.captain_id\n        FROM Users u\n        LEFT JOIN Teams t ON u.id = t.user_id\n        LEFT JOIN TeamPlayers tp ON t.id = tp.team_id\n        LEFT JOIN PlayerScores ps ON tp.player_id = ps.player_id AND ps.round = t.round\n        WHERE u.id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "team_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "PRIMARY_KEY | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "player_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "PRIMARY_KEY | MULTIPLE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "score",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "captain_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "MULTIPLE_KEY",
+          "char_set": 63,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "246c315a9c245c2bdc44cfd5f1c38073f2793bfe50ffcb09dd47e4c087a16e87"
+}

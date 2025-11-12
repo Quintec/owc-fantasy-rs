@@ -1,0 +1,113 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        SELECT \n            u.id as user_id,\n            u.username,\n            t.round,\n            t.id as team_id,\n            tp.player_id,\n            p.username as player_username,\n            ps.score,\n            t.captain_id,\n            CASE \n                WHEN tp.player_id = t.captain_id THEN ps.score * 2\n                ELSE ps.score\n            END as counted_score\n        FROM Users u\n        LEFT JOIN Teams t ON u.id = t.user_id\n        LEFT JOIN TeamPlayers tp ON t.id = tp.team_id\n        LEFT JOIN Players p ON tp.player_id = p.id\n        LEFT JOIN PlayerScores ps ON tp.player_id = ps.player_id AND ps.round = t.round\n        ORDER BY u.id, t.round, tp.player_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 200
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "round",
+        "type_info": {
+          "type": "String",
+          "flags": "ENUM | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 16
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "team_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "PRIMARY_KEY | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "player_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "PRIMARY_KEY | MULTIPLE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "player_username",
+        "type_info": {
+          "type": "VarString",
+          "flags": "UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 200
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "score",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "captain_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "MULTIPLE_KEY",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "counted_score",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "BINARY",
+          "char_set": 63,
+          "max_size": 12
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "fe600e3c304b36e64f2b360ee1be34a08be2f5107b81269042d88d7884cdfb25"
+}

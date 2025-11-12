@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT id, username, avatar_url, country, `rank` FROM Players WHERE id = ?",
+  "query": "\n        SELECT \n            p.id as `id!: i32`,\n            p.username,\n            p.avatar_url,\n            p.country,\n            p.`rank` as `rank!: i32`,\n            p.eliminated as `eliminated!: i8`,\n            COALESCE(pp.price, 0) as `price!: i32`\n        FROM TeamPlayers tp\n        JOIN Players p ON tp.player_id = p.id\n        LEFT JOIN PlayerPrices pp ON p.id = pp.player_id AND pp.round = ?\n        WHERE tp.team_id = ?\n        ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id!: i32",
         "type_info": {
           "type": "Long",
           "flags": "NOT_NULL | PRIMARY_KEY | UNIQUE_KEY | NO_DEFAULT_VALUE",
@@ -45,19 +45,41 @@
       },
       {
         "ordinal": 4,
-        "name": "rank",
+        "name": "rank!: i32",
         "type_info": {
           "type": "Long",
           "flags": "NOT_NULL | NO_DEFAULT_VALUE",
           "char_set": 63,
           "max_size": 11
         }
+      },
+      {
+        "ordinal": 5,
+        "name": "eliminated!: i8",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "char_set": 63,
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "price!: i32",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "char_set": 63,
+          "max_size": 11
+        }
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
+      false,
+      false,
       false,
       false,
       false,
@@ -65,5 +87,5 @@
       false
     ]
   },
-  "hash": "af971390e6cb9c5777c514023d4a4105d88ab220b49561530aec0fb225ffdddc"
+  "hash": "d83a937e934d280f41db23354e2ad7a364a77b123b5a36a3845ae3815293ac4e"
 }

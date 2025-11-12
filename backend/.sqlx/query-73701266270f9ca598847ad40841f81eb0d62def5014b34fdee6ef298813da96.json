@@ -1,16 +1,16 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT country FROM Players WHERE id = ?",
+  "query": "SELECT `rank` FROM Players WHERE id = ?",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "country",
+        "name": "rank",
         "type_info": {
-          "type": "VarString",
+          "type": "Long",
           "flags": "NOT_NULL | NO_DEFAULT_VALUE",
-          "char_set": 224,
-          "max_size": 20
+          "char_set": 63,
+          "max_size": 11
         }
       }
     ],
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "0954009f77e6ff9dd5c8db15d96b455cbf481ff0b8ef952eb4424bf3e60d52b6"
+  "hash": "73701266270f9ca598847ad40841f81eb0d62def5014b34fdee6ef298813da96"
 }
