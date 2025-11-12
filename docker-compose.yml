@@ -30,7 +30,7 @@ services:
       DATABASE_URL: mysql://rustuser:password@db/owc_fantasy
       SESSION_SECRET: ${SESSION_SECRET:-wysiwysiwysiwysiwysiwysiwysiwysiwysiwysiwysiwysiwysiwysiwysiwys1}
       SESSION_SECURE: ${SESSION_SECURE:-false}
-      API_BASE_URL: ${API_BASE_URL:-http://localhost:8080}
+      API_BASE_URL: ${API_BASE_URL:-https://api.owcfantasy.xyz}
       FRONTEND_URL: ${FRONTEND_URL:-https://owcfantasy.xyz}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://owcfantasy.xyz,https://api.owcfantasy.xyz}
       OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID}
