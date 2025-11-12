@@ -1,5 +1,7 @@
 
 import { useAuth } from '../contexts/AuthContext'
+import draftDemo from '../assets/draftdemo.png'
+import scoring from '../assets/scoring.png'
 
 
 
@@ -34,11 +36,11 @@ export default function Home() {
           </div>
         <div className="flex md:flex-row flex-col bg-purple-700 max-w-3/4 m-5 p-5 md:p-8 items-center rounded-lg gap-6 md:gap-8">
               <p className="text-white text-xl md:flex-1">Each week, you get the chance to put together your own team from 8 OWC players. You'll have a budget of $100M to spend, and no more than two picks from the same country. You'll even get to choose a captain whose points are doubled for that week.</p>
-              <img src="./src/assets/draftdemo.png" className="w-full md:w-1/2 max-w-md h-auto object-contain flex-shrink-0"></img>
+              <img src={draftDemo} className="w-full md:w-1/2 max-w-md h-auto object-contain flex-shrink-0" alt="Draft demo"></img>
         </div>
 
         <div className="flex md:flex-row flex-col-reverse bg-purple-700 max-w-3/4 m-5 p-5 md:p-8 items-center rounded-lg gap-6 md:gap-8">
-              <img src="./src/assets/scoring.png" className="w-full md:w-1/2 max-w-md h-auto object-contain flex-shrink-0"></img>
+              <img src={scoring} className="w-full md:w-1/2 max-w-md h-auto object-contain flex-shrink-0" alt="Scoring explanation"></img>
               <p className="text-white text-xl md:flex-1">At the end of each week, the points for your team are tallied based on their individual performances in their matches. Every week you will get the chance to draft a new team with updated prices based on the performance of players from the last round.</p>
         </div>
     </div>
