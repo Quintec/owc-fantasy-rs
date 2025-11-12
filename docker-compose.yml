@@ -21,9 +21,7 @@ services:
       retries: 5
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: owc-fantasy-rs-backend:latest
     container_name: owc-fantasy-backend
     restart: unless-stopped
     ports:
@@ -50,9 +48,7 @@ services:
       - ./backend/.env:/app/.env:ro
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: owc-fantasy-rs-frontend:latest
     container_name: owc-fantasy-frontend
     restart: unless-stopped
     ports:
