@@ -34,7 +34,7 @@ export default function Player({ id, username, country, rank, price, drafted, pl
                     <img alt="country" src={`https://osuflags.omkserver.nl/${country}.png`} className="w-10 h-10"></img>
                 </div>
             </div>
-            <h2 className="text-white text-xl"><span className="font-bold">Price:</span> ${price}</h2>
+            <h2 className="text-white text-xl"><span className="font-bold">Price:</span> ${price.toLocaleString()}</h2>
         </div>
     )
 }

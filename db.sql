@@ -30,7 +30,8 @@ CREATE TABLE Teams (
     captain_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (captain_id) REFERENCES Players(id) ON DELETE SET NULL
+    FOREIGN KEY (captain_id) REFERENCES Players(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_user_round (user_id, round)
 );
 
 
@@ -44,10 +45,15 @@ CREATE TABLE TeamPlayers (
 );
 
 -- PlayerScores table: Stores player scores for each round
+-- score: computed average (total_score / match_count)
+-- total_score: sum of scores across all matches in the round
+-- match_count: number of matches the player participated in
 CREATE TABLE PlayerScores (
     player_id INT NOT NULL,
     round ENUM('ro64', 'ro32', 'ro16', 'qf', 'sf', 'f', 'gf') NOT NULL,
     score INT NOT NULL DEFAULT 0,
+    total_score INT NOT NULL DEFAULT 0,
+    match_count INT NOT NULL DEFAULT 0,
     PRIMARY KEY (player_id, round),
     FOREIGN KEY (player_id) REFERENCES Players(id) ON DELETE CASCADE
 );

@@ -1,9 +1,8 @@
 use crate::db::teams::{
     get_round_team_by_user_id, get_teams_by_user_id,
 };
-use crate::db::users::{get_all_users, get_user_by_id};
-use crate::middleware::auth::same_id_middleware;
-use actix_web::{get, middleware::from_fn, post, web, HttpResponse, Responder};
+use crate::db::users::{get_all_users, get_user_by_id, get_leaderboard, get_leaderboard_breakdown, get_user_data_counts};
+use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::MySqlPool;
 
 use crate::state::AppState;
@@ -79,10 +78,22 @@ async fn users_get_team_by_round(
     }
 }
 
+#[get("/leaderboard")]
+async fn users_get_leaderboard(data: web::Data<AppState>) -> impl Responder {
+    let pool: &MySqlPool = &data.pool;
+
+    let leaderboard = get_leaderboard(pool).await;
+    match leaderboard {
+        Ok(users) => HttpResponse::Ok().json(users),
+        Err(_) => HttpResponse::InternalServerError().body("Error fetching leaderboard"),
+    }
+}
+
 pub fn users_controller() -> actix_web::Scope {
     web::scope("/users")
         .service(users_get)
         .service(users_get_me)
+        .service(users_get_leaderboard)
         .service(users_get_by_id)
         .service(users_get_teams)
         .service(users_get_team_by_round)

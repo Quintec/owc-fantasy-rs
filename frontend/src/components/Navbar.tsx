@@ -32,11 +32,11 @@ export default function Navbar() {
               Leaderboards
             </Link>
           </li>
-          <li>
-            <Link to="/players" className="hover:text-purple-400 transition-colors">
-              Players
+          {/* <li>
+            <Link to="/faq" className="hover:text-purple-400 transition-colors">
+              FAQ
             </Link>
-          </li>
+          </li> */}
         </ul>
 
         <div className="p-3">

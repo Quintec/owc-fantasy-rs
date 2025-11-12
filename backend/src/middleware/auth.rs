@@ -7,13 +7,14 @@ use actix_web::{
     Error,
 };
 
-const ADMIN_ID: i32 = 15458667;
+const ADMIN_IDS: &[i32] = &[12835025, 15458667];
 
 pub async fn auth_middleware(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
-    if req.path().starts_with("/api/auth") {
+    // Allow auth endpoints and public leaderboard
+    if req.path().starts_with("/api/auth") || req.path() == "/api/users/leaderboard" {
         return next.call(req).await;
     }
 
@@ -37,15 +38,15 @@ pub async fn same_id_middleware(
         return Err(ErrorUnauthorized("Unauthorized, please sign in"));
     };
 
-    let Some(path_id) = req.match_info().get("id") else {
-        return Err(ErrorInternalServerError("Expected id in path"));
+    let Some(path_id) = req.match_info().get("user_id") else {
+        return Err(ErrorInternalServerError("Expected user_id in path"));
     };
 
     let Ok(path_id) = path_id.parse::<i32>() else {
         return Err(ErrorInternalServerError("Error parsing path id"));
     };
 
-    if user_id != path_id && user_id != ADMIN_ID {
+    if user_id != path_id && !ADMIN_IDS.contains(&user_id) {
         return Err(ErrorForbidden("Forbidden"));
     }
 
@@ -63,7 +64,7 @@ pub async fn admin_middleware(
         return Err(ErrorUnauthorized("Unauthorized, please sign in"));
     };
 
-    if user_id != ADMIN_ID {
+    if !ADMIN_IDS.contains(&user_id) {
         return Err(ErrorForbidden("Forbidden"));
     }
 

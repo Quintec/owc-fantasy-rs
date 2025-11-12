@@ -32,14 +32,14 @@ export default function Home() {
               </button>
             )}
           </div>
-        <div className="flex flex-row justify-between bg-purple-500 max-w-3/4 m-5 p-5 items-center">
-              <p className="text-white text-2xl">Each week, you get the chance to put together your own squad of 8 players. You’ll have a budget of $100M to spend, and no more than two picks from the same country, so every decision counts. To make it even more interesting, you’ll choose a captain whose points are doubled for that week.</p>
-              <img src="https://a.ppy.sh/2" className="min-w-1/4 m-10"></img>
+        <div className="flex md:flex-row flex-col bg-purple-700 max-w-3/4 m-5 p-5 md:p-8 items-center rounded-lg gap-6 md:gap-8">
+              <p className="text-white text-xl md:flex-1">Each week, you get the chance to put together your own team from 8 OWC players. You'll have a budget of $100M to spend, and no more than two picks from the same country. You'll even get to choose a captain whose points are doubled for that week.</p>
+              <img src="./src/assets/draftdemo.png" className="w-full md:w-1/2 max-w-md h-auto object-contain flex-shrink-0"></img>
         </div>
 
-        <div className="flex flex-row justify-between bg-purple-500 max-w-3/4 m-5 p-5 items-center">
-              <img src="https://a.ppy.sh/2" className="min-w-1/4 m-10"></img>
-              <p className="text-white text-2xl">Points come from how your players perform in their real matches. Goals, saves, wins, losses—it all matters. But there’s a catch: if a team plays twice in the same weekend, those players only earn half points for that round. It keeps the playing field level and makes you think twice about loading up on certain picks.</p>
+        <div className="flex md:flex-row flex-col-reverse bg-purple-700 max-w-3/4 m-5 p-5 md:p-8 items-center rounded-lg gap-6 md:gap-8">
+              <img src="./src/assets/scoring.png" className="w-full md:w-1/2 max-w-md h-auto object-contain flex-shrink-0"></img>
+              <p className="text-white text-xl md:flex-1">At the end of each week, the points for your team are tallied based on their individual performances in their matches. Every week you will get the chance to draft a new team with updated prices based on the performance of players from the last round.</p>
         </div>
     </div>
   )

@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import Player from "../components/Player";
 import type { PlayerProps } from "../types";
 import PlaceholderPlayer from "../components/PlaceholderPlayer";
-import { getRemainingPlayers, getTeamPlayers } from "../api/players";
-import { postPlayers, getUserTeamByRound  } from "../api/users";
+import { getRemainingPlayersWithPrices } from "../api/players";
+import { postPlayers, getUserTeamByRound, getTeamPlayersWithCaptain } from "../api/users";
 import { useAuth } from "../contexts/AuthContext";
 import { useRound } from "../contexts/RoundContext";
 
@@ -14,7 +14,7 @@ export default function Team() {
     const [error, setError] = useState<string | null>(null);
     const [drafting, setDraft] = useState(false);
     const [queryPlayer, setPlayerQuery] = useState("");
-    const [balance, setBalance] = useState(10000000); // replace with API call later
+    const [balance, setBalance] = useState(100000000); // 100M default budget
     const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
     
     // drafting window is provided by RoundContext (Mon 00:00 UTC -> Fri 00:00 UTC)
@@ -24,76 +24,6 @@ export default function Team() {
         setNotification({ message, type });
         setTimeout(() => setNotification(null), 3000);
     };
-
-    // Manual test data - replace with real API call later
-    // useEffect(() => {
-    //     const testPlayers: PlayerProps[] = [
-    //         { id: 124493, username: "123465789123456", country: "KR", rank: 1, price: 1000000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124494, username: "Vaxei", country: "US", rank: 2, price: 950000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124495, username: "WhiteCat", country: "PL", rank: 3, price: 900000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124496, username: "mrekk", country: "US", rank: 4, price: 850000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124497, username: "Aricin", country: "US", rank: 5, price: 800000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124498, username: "Bubbleman", country: "GB", rank: 6, price: 750000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124499, username: "Rafis", country: "PL", rank: 7, price: 700000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124500, username: "idke", country: "US", rank: 8, price: 650000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124501, username: "Azer", country: "US", rank: 9, price: 600000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124502, username: "Rohulk", country: "RO", rank: 10, price: 550000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124503, username: "Mathi", country: "FR", rank: 11, price: 500000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124504, username: "WubWoofWolf", country: "PL", rank: 12, price: 450000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124505, username: "Doomsday", country: "GB", rank: 13, price: 400000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124506, username: "Toy", country: "US", rank: 14, price: 380000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124507, username: "RyuK", country: "KR", rank: 15, price: 360000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124508, username: "Angelsim", country: "US", rank: 16, price: 340000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124509, username: "hvick225", country: "TW", rank: 17, price: 320000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124510, username: "Axarious", country: "US", rank: 18, price: 300000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124511, username: "Seouless", country: "KR", rank: 19, price: 280000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124512, username: "Emilia", country: "US", rank: 20, price: 260000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124513, username: "Filsdelama", country: "FR", rank: 21, price: 240000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124514, username: "Yaong", country: "KR", rank: 22, price: 220000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124515, username: "Karthy", country: "GB", rank: 23, price: 200000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124516, username: "Dustice", country: "DE", rank: 24, price: 180000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124517, username: "Rohi6", country: "JP", rank: 25, price: 160000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124518, username: "Pishifat", country: "US", rank: 26, price: 140000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124519, username: "Monstrata", country: "US", rank: 27, price: 120000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124520, username: "Naxess", country: "SE", rank: 28, price: 100000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124521, username: "ktgster", country: "US", rank: 29, price: 90000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124522, username: "HappyStick", country: "US", rank: 30, price: 80000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124523, username: "Guy", country: "US", rank: 31, price: 70000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124524, username: "Plaudible", country: "US", rank: 32, price: 60000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124525, username: "Niko", country: "US", rank: 33, price: 50000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124526, username: "Bikko", country: "JP", rank: 34, price: 45000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124527, username: "My Angel Haruna", country: "JP", rank: 35, price: 40000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124528, username: "Varvalian", country: "JP", rank: 36, price: 35000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124529, username: "Nakano-", country: "JP", rank: 37, price: 30000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124530, username: "Azerite", country: "US", rank: 38, price: 25000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124531, username: "Elysion", country: "US", rank: 39, price: 20000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124532, username: "Mismagius", country: "US", rank: 40, price: 15000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124533, username: "Woey", country: "US", rank: 41, price: 12000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124534, username: "Monko2k", country: "US", rank: 42, price: 10000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124535, username: "Dustice", country: "DE", rank: 43, price: 8000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124536, username: "Karthy", country: "GB", rank: 44, price: 6000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124537, username: "Rohulk", country: "RO", rank: 45, price: 4000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124538, username: "Mathi", country: "FR", rank: 46, price: 3000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124539, username: "WubWoofWolf", country: "PL", rank: 47, price: 2000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124540, username: "txFPS", country: "CA", rank: 48, price: 1500, eliminated: false, captain: false, drafted: false },
-    //         { id: 124541, username: "Toy", country: "US", rank: 49, price: 1000, eliminated: false, captain: false, drafted: false },
-    //         { id: 124542, username: "RyuK", country: "KR", rank: 50, price: 500, eliminated: false, captain: false, drafted: false }
-    //     ];
-    //     setAllPlayers(testPlayers.sort((a, b) => b.price - a.price));
-        
-    //     // Update drafted status based on userPlayers
-    //     const updateDraftedStatus = (allPlayers: PlayerProps[], userPlayers: PlayerProps[]) => {
-    //         return allPlayers.map(player => ({
-    //             ...player,
-    //             drafted: userPlayers.some(userPlayer => userPlayer.id === player.id)
-    //         }));
-    //     };
-        
-    //     // For now, set empty userPlayers (no one drafted yet)
-    //     setUserPlayers([]);
-    //     setAllPlayers(updateDraftedStatus(testPlayers, []));
-    //     setLoading(false);
-    // }, []);
 
     const { user, loading: authLoading } = useAuth();
     const { round, isDraftOpen } = useRound();
@@ -115,29 +45,36 @@ export default function Team() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const allPlayersData = await getRemainingPlayers();
+                const allPlayersData = await getRemainingPlayersWithPrices(round);
 
-                // backend /users/{id}/teams/{round} returns a Team object (or 404)
-                // so fetch the team first and then fetch team players by team id.
-                const teamOrPlayers = await getUserTeamByRound(user.id, round);
+                // Fetch the user's team for this round
                 let userPlayersData: PlayerProps[] = [];
-                if (Array.isArray(teamOrPlayers)) {
-                    // older API shape: endpoint returned array of players
-                    userPlayersData = teamOrPlayers;
-                } else if (teamOrPlayers && (teamOrPlayers as any).id) {
-                    // team object returned, fetch players by team id
-                    const teamId = (teamOrPlayers as any).id as number;
-                    userPlayersData = await getTeamPlayers(teamId);
-                } else {
+                try {
+                    const team = await getUserTeamByRound(user.id, round);
+                    if (team && team.id) {
+                        userPlayersData = await getTeamPlayersWithCaptain(team.id, team.captain_id);
+                    }
+                } catch (err) {
+                    // 404 or other error means no team exists yet - that's okay
+                    console.log("No team found for user, starting with empty team");
                     userPlayersData = [];
                 }
                 
                 // Update drafted status based on userPlayers
                 const updateDraftedStatus = (allPlayers: PlayerProps[], userPlayers: PlayerProps[]) => {
-                    return allPlayers.map(player => ({
-                        ...player,
-                        drafted: userPlayers.some(userPlayer => userPlayer.id === player.id)
-                    }));
+                    // Create a map of user players with their order and captain status
+                    const userPlayerMap = new Map(userPlayers.map((p, idx) => [p.id, { ...p, order: idx }]));
+                    
+                    return allPlayers.map(player => {
+                        const userPlayer = userPlayerMap.get(player.id);
+                        return {
+                            ...player,
+                            drafted: !!userPlayer,
+                            captain: userPlayer?.captain || false,
+                            // Store the order for sorting later
+                            draftOrder: userPlayer?.order ?? 999999
+                        };
+                    });
                 };
                 
                 setUserPlayers(userPlayersData);
@@ -212,13 +149,31 @@ export default function Team() {
 
         // If player is already drafted, undraft them
         if (player.drafted === true) {
-            setAllPlayers(prevPlayers => 
-                prevPlayers.map(player => 
-                    player.id === playerId 
-                        ? { ...player, drafted: !player.drafted }
-                        : player
-                )
-            );
+            setAllPlayers(prevPlayers => {
+                // First, undraft the player
+                const withUndrafted = prevPlayers.map(p => 
+                    p.id === playerId 
+                        ? { ...p, drafted: false, captain: false, draftOrder: undefined }
+                        : p
+                );
+                
+                // Get remaining drafted players and reorder them
+                const stillDrafted = withUndrafted
+                    .filter(p => p.drafted)
+                    .sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999));
+                
+                // Create a map of updated draftOrder values
+                const draftOrderMap = new Map(stillDrafted.map((p, i) => [p.id, { draftOrder: i, captain: i === 0 }]));
+                
+                // Update only the draftOrder and captain fields
+                return withUndrafted.map(p => {
+                    const update = draftOrderMap.get(p.id);
+                    if (update) {
+                        return { ...p, ...update };
+                    }
+                    return p;
+                });
+            });
             setBalance((currentBalance) => currentBalance + player.price);
             return;
         }
@@ -248,17 +203,21 @@ export default function Team() {
         // All checks passed, draft the player
         setBalance((currentBalance) => currentBalance - player.price);
 
+        // Assign draftOrder based on current number of drafted players
+        const newDraftOrder = draftedPlayers.length;
+        const isCaptain = newDraftOrder === 0; // First player is captain
+
         setAllPlayers(prevPlayers => 
             prevPlayers.map(player => 
                 player.id === playerId 
-                    ? { ...player, drafted: !player.drafted }
+                    ? { ...player, drafted: !player.drafted, draftOrder: newDraftOrder, captain: isCaptain }
                     : player
             )
         );
     }
 
     const finalizeDraft = async () => {
-        let draftedPlayers = players.filter(p => p.drafted === true);
+        let draftedPlayers = players.filter(p => p.drafted === true).sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999));
         let draftCount = draftedPlayers.length;
         if (draftCount !== 8) {
             showNotification("You have not drafted a full team", 'error');
@@ -272,11 +231,12 @@ export default function Team() {
 
         // Prepare player IDs in the order they appear (captain is first)
         const playerIds = draftedPlayers.map(p => p.id);
+        const captainId = playerIds[0]; // First player is the captain
 
         try {
             setLoading(true);
-            // Call backend to create team and add players
-            const createdTeam = await postPlayers(user.id, playerIds, round);
+            // Call backend to create team and add players with captain
+            const createdTeam = await postPlayers(user.id, playerIds, round, captainId);
             setUserPlayers(createdTeam);
             setDraft(false);
             showNotification('Team submitted successfully', 'success');
@@ -290,7 +250,17 @@ export default function Team() {
 
     const resetDraft = () => {
         setAllPlayers(players.map((p) => ({ ...p, drafted: false })));
-        setBalance(10000000);
+        setBalance(100000000);
+    }
+
+    const startDrafting = () => {
+        // Calculate balance: 100M - sum of already drafted players
+        const draftedPlayers = players.filter(p => p.drafted === true);
+        const totalDraftedValue = draftedPlayers.reduce((sum, player) => sum + player.price, 0);
+        const remainingBalance = 100000000 - totalDraftedValue;
+        
+        setBalance(remainingBalance);
+        setDraft(true);
     }
 
     if (drafting) {
@@ -351,7 +321,7 @@ export default function Team() {
                     <h2 className="text-gray-400 text-sm">Drag to select captain</h2>
                     <div className="w-full">
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto mt-5 auto-rows-fr">
-                        {players.filter(p => p.drafted).map((player, idx) => (
+                        {players.filter(p => p.drafted).sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999)).map((player, idx) => (
                             <div
                                 key={player.id}
                                 draggable
@@ -363,18 +333,26 @@ export default function Team() {
                                     e.preventDefault();
                                     const draggedId = Number(e.dataTransfer.getData('text/plain'));
                                     if (!draggedId || draggedId === player.id) return;
-                                    const draftedOrdered = players.filter(p => p.drafted);
+                                    const draftedOrdered = players.filter(p => p.drafted).sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999));
                                     const fromIdx = draftedOrdered.findIndex(p => p.id === draggedId);
                                     const toIdx = draftedOrdered.findIndex(p => p.id === player.id);
                                     if (fromIdx === -1 || toIdx === -1) return;
                                     const reordered = [...draftedOrdered];
                                     const [moved] = reordered.splice(fromIdx, 1);
                                     reordered.splice(toIdx, 0, moved);
-                                    // write back to players keeping undrafted after
-                                    const undrafted = players.filter(p => !p.drafted);
-                                    // mark captain = first
-                                    const withCaptain = reordered.map((p, i) => ({ ...p, captain: i === 0 }));
-                                    setAllPlayers([...withCaptain, ...undrafted]);
+                                    
+                                    // Update only the draftOrder and captain fields, don't reorder the main array
+                                    const draftOrderMap = new Map(reordered.map((p, i) => [p.id, { draftOrder: i, captain: i === 0 }]));
+                                    
+                                    setAllPlayers(prevPlayers => 
+                                        prevPlayers.map(p => {
+                                            const update = draftOrderMap.get(p.id);
+                                            if (update) {
+                                                return { ...p, ...update };
+                                            }
+                                            return p;
+                                        })
+                                    );
                                 }}
                                 className={`relative`}
                             >
@@ -403,15 +381,25 @@ export default function Team() {
                                 onDrop={(e) => {
                                     e.preventDefault();
                                     const draggedId = Number(e.dataTransfer.getData('text/plain'));
-                                    const draftedOrdered = players.filter(p => p.drafted);
+                                    const draftedOrdered = players.filter(p => p.drafted).sort((a, b) => (a.draftOrder ?? 999999) - (b.draftOrder ?? 999999));
                                     const fromIdx = draftedOrdered.findIndex(p => p.id === draggedId);
                                     if (fromIdx === -1) return;
                                     const reordered = [...draftedOrdered];
                                     const [moved] = reordered.splice(fromIdx, 1);
                                     reordered.push(moved);
-                                    const undrafted = players.filter(p => !p.drafted);
-                                    const withCaptain = reordered.map((p, i) => ({ ...p, captain: i === 0 }));
-                                    setAllPlayers([...withCaptain, ...undrafted]);
+                                    
+                                    // Update only the draftOrder and captain fields, don't reorder the main array
+                                    const draftOrderMap = new Map(reordered.map((p, i) => [p.id, { draftOrder: i, captain: i === 0 }]));
+                                    
+                                    setAllPlayers(prevPlayers => 
+                                        prevPlayers.map(p => {
+                                            const update = draftOrderMap.get(p.id);
+                                            if (update) {
+                                                return { ...p, ...update };
+                                            }
+                                            return p;
+                                        })
+                                    );
                                 }}
                                 className="h-full"
                             >
@@ -426,7 +414,13 @@ export default function Team() {
                         <button className="bg-red-700 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/6 ml-5" onClick={resetDraft}>Reset</button>
                     </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
-                {players.filter(p => p.username.toLowerCase().includes(queryPlayer) || p.country.toLowerCase().includes(queryPlayer)).map((player) => (
+                {players
+                    .filter(p => p.username.toLowerCase().includes(queryPlayer.toLowerCase()) || p.country.toLowerCase().includes(queryPlayer.toLowerCase()))
+                    .sort((a, b) => {
+                        // Sort by price (highest to lowest)
+                        return (b.price || 0) - (a.price || 0);
+                    })
+                    .map((player) => (
                     <Player 
                         key={player.id}
                         id={player.id}
@@ -446,16 +440,14 @@ export default function Team() {
         )
     }
 
-    console.log(players)
-
     return (
         <div className="p-5 flex flex-col items-center">
             <h1 className="text-xl font-bold text-white mb-5 text-center">My Team</h1>
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto">
-                {userPlayers.map((player, idx) => (
+                {userPlayers.map((player) => (
                     <div key={player.id} className="relative">
-                        {idx === 0 && (
+                        {player.captain && (
                             <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow z-10">CAPTAIN</div>
                         )}
                         <Player 
@@ -469,7 +461,7 @@ export default function Team() {
                         />
                     </div>
                 ))}
-                {Array.from({length: Math.max(0, 8 - players.filter(p => p.drafted).length)}).map((_, i) => (
+                {Array.from({length: Math.max(0, 8 - userPlayers.length)}).map((_, i) => (
                     <PlaceholderPlayer key={`ph-${i}`} />
                 ))}
             </div>
@@ -477,7 +469,7 @@ export default function Team() {
                 <div className="my-5 text-center w-full">
                     <button 
                         className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 my-5 rounded-md text-2xl min-w-1/4 transition-colors" 
-                        onClick={() => setDraft(true)}
+                        onClick={startDrafting}
                     >
                         Edit
                     </button>
@@ -493,7 +485,7 @@ export default function Team() {
                     >
                         Edit Locked
                     </button>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-400 text-sm mt-5">
                         Drafting is locked. Drafting windows open Mon 00:00 UTC and close Fri 00:00 UTC.
                     </p>
                 </div>

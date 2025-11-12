@@ -2,10 +2,14 @@ use crate::db::{
     models::Player,
     players::{
         bulk_create_players, create_player, delete_player, eliminate_player, get_all_players,
-        get_player_by_id, get_player_price, get_remaining_players, update_player_price,
+        get_player_by_id, get_player_price, get_remaining_players, get_remaining_players_with_prices, update_player_price,
     },
 };
 use crate::middleware::auth::admin_middleware;
+use crate::scripts::players::{
+    players_import_from_participants, players_import_pscores,
+    players_set_default_prices,
+};
 use actix_web::{delete, get, middleware::from_fn, post, web, HttpResponse, Responder};
 use serde::Deserialize;
 use sqlx::MySqlPool;
@@ -36,6 +40,27 @@ async fn players_get_remaining(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/remaining/{round}")]
+async fn players_get_remaining_with_prices(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+) -> impl Responder {
+    let pool: &MySqlPool = &data.pool;
+    let round = path.into_inner();
+
+    // Validate round
+    if !["ro64", "ro32", "ro16", "qf", "sf", "f", "gf"].contains(&round.as_str()) {
+        return HttpResponse::BadRequest().body("Invalid round");
+    }
+
+    let players = get_remaining_players_with_prices(pool, round).await;
+
+    match players {
+        Ok(players) => HttpResponse::Ok().json(players),
+        Err(_) => HttpResponse::InternalServerError().body("Error fetching remaining players with prices"),
+    }
+}
+
 #[get("/{id}")]
 async fn players_get_by_id(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
@@ -46,9 +71,7 @@ async fn players_get_by_id(data: web::Data<AppState>, path: web::Path<i32>) -> i
         Ok(player) => HttpResponse::Ok().json(player),
         Err(_) => HttpResponse::NotFound().body("Player not found"),
     }
-}
-
-#[post("/{id}/eliminate", wrap = "from_fn(admin_middleware)")]
+}#[post("/{id}/eliminate", wrap = "from_fn(admin_middleware)")]
 async fn players_eliminate(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
     let player_id = path.into_inner();
@@ -150,11 +173,16 @@ pub fn players_controller() -> actix_web::Scope {
     web::scope("/players")
         .service(players_get)
         .service(players_get_remaining)
+        .service(players_get_remaining_with_prices)
         .service(players_get_by_id)
         .service(players_eliminate)
+        .service(players_uneliminate)
         .service(players_create)
         .service(players_delete)
         .service(players_bulk_create)
+        .service(players_import_from_participants)
+        .service(players_import_pscores)
+        .service(players_set_default_prices)
         .service(players_get_price)
         .service(players_set_price)
 }

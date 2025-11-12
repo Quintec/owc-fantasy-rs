@@ -6,6 +6,7 @@ mod config;
 mod db;
 mod middleware;
 mod routes;
+mod scripts;
 mod state;
 mod util;
 

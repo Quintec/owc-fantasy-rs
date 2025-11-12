@@ -8,6 +8,7 @@ export type PlayerProps = {
     score?: number;
     drafted?: boolean;
     captain?: boolean;
+    draftOrder?: number;
     playerSelected?: Function;
 };
 
@@ -18,9 +19,9 @@ export type User = {
     team?: PlayerProps[]
 };
 
-// export type Team = {
-//     id: number;
-//     user_id: number;
-//     round: string;
-//     captain_id?: number | null;
-// };
+export type Team = {
+    id: number;
+    user_id: number;
+    round: string;
+    captain_id?: number | null;
+};
