@@ -76,15 +76,27 @@ export async function getTeamPlayers(teamId: number, config = {}) {
 
     // Admin helper: eliminate players in the tournament (not tied to any user/team).
     // By default this will target players returned by `/api/players/remaining` (players still in the tournament).
-    // If `country` is provided, only players with that country code will be eliminated.
+    // If `country` is provided, it can be a single country code or comma-separated codes (e.g., "AR, BY, BE").
     export async function eliminatePlayers(country?: string, config = {}) {
         try {
             // fetch players still remaining in tournament
             const players = await getRemainingPlayers(config);
 
-            const toEliminate = country
-                ? players.filter((p: PlayerProps) => p.country?.toLowerCase() === country.toLowerCase())
-                : players;
+            let toEliminate: PlayerProps[];
+            
+            if (country) {
+                // Parse comma-separated country codes
+                const countryCodes = country
+                    .split(',')
+                    .map(c => c.trim().toLowerCase())
+                    .filter(c => c.length > 0);
+                
+                toEliminate = players.filter((p: PlayerProps) => 
+                    countryCodes.includes(p.country?.toLowerCase() || '')
+                );
+            } else {
+                toEliminate = players;
+            }
 
             for (const p of toEliminate) {
                 await axios.post(`${API_BASE}/api/players/${p.id}/eliminate`, {}, {
@@ -102,6 +114,7 @@ export async function getTeamPlayers(teamId: number, config = {}) {
 
     // Admin helper: un-eliminate players in the tournament (admin-only endpoint).
     // This will call POST /api/players/{id}/uneliminate for each matched player.
+    // If `country` is provided, it can be a single country code or comma-separated codes (e.g., "AR, BY, BE").
     export async function unEliminatePlayers(country?: string, config = {}) {
         try {
             // Note: getRemainingPlayers returns players where eliminated = false. To find
@@ -111,9 +124,21 @@ export async function getTeamPlayers(teamId: number, config = {}) {
             const all = await getAllPlayers(config);
             const eliminatedPlayers = all.filter((p: PlayerProps) => (p as any).eliminated);
 
-            const toUnEliminate = country
-                ? eliminatedPlayers.filter((p: PlayerProps) => p.country?.toLowerCase() === country.toLowerCase())
-                : eliminatedPlayers;
+            let toUnEliminate: PlayerProps[];
+            
+            if (country) {
+                // Parse comma-separated country codes
+                const countryCodes = country
+                    .split(',')
+                    .map(c => c.trim().toLowerCase())
+                    .filter(c => c.length > 0);
+                
+                toUnEliminate = eliminatedPlayers.filter((p: PlayerProps) => 
+                    countryCodes.includes(p.country?.toLowerCase() || '')
+                );
+            } else {
+                toUnEliminate = eliminatedPlayers;
+            }
 
             for (const p of toUnEliminate) {
                 await axios.post(`${API_BASE}/api/players/${p.id}/uneliminate`, {}, {

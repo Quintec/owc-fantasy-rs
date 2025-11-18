@@ -173,19 +173,26 @@ pub fn parse_pscores_flexible(text: &str) -> HashMap<String, f64> {
             continue;
         }
         
-        // Split by tab or multiple spaces
-        let parts: Vec<&str> = if line.contains('\t') {
-            line.split('\t').collect()
+        // Split by tab or whitespace, but preserve username with spaces
+        if line.contains('\t') {
+            // Tab-separated: split by tab
+            let parts: Vec<&str> = line.split('\t').collect();
+            if parts.len() >= 2 {
+                let identifier = parts[0].trim().to_string();
+                if let Ok(pscore) = parts[parts.len() - 1].trim().parse::<f64>() {
+                    scores.insert(identifier, pscore);
+                }
+            }
         } else {
-            line.split_whitespace().collect()
-        };
-        
-        if parts.len() >= 2 {
-            // First part is identifier (user_id or username)
-            let identifier = parts[0].trim().to_string();
-            // Last part should be pscore (float)
-            if let Ok(pscore) = parts[parts.len() - 1].trim().parse::<f64>() {
-                scores.insert(identifier, pscore);
+            // Space-separated: split from the RIGHT to get the last number
+            // Username can have spaces, so we find the last whitespace-separated token
+            if let Some(last_space_idx) = line.rfind(char::is_whitespace) {
+                let identifier = line[..last_space_idx].trim().to_string();
+                let score_str = line[last_space_idx..].trim();
+                
+                if let Ok(pscore) = score_str.parse::<f64>() {
+                    scores.insert(identifier, pscore);
+                }
             }
         }
     }
@@ -273,10 +280,46 @@ fn pscore_to_price(pscore: f64) -> i32 {
     rounded_price.clamp(MIN_PRICE, MAX_PRICE)
 }
 
+/// Convert pscore to price using relative scaling based on the maximum pScore in the dataset
+/// This ensures prices scale appropriately regardless of the actual pScore range
+/// 
+/// For example:
+/// - If max pScore is 1.926, that player gets ~30M
+/// - If max pScore is 2.5, that player gets ~30M
+/// - All other players scale proportionally
+fn pscore_to_price_relative(pscore: f64, max_pscore: f64) -> i32 {
+    const MIN_PRICE: i32 = 6_000_000; // 6M floor (raised to avoid too many at minimum)
+    const MAX_PRICE: i32 = 27_000_000; // 27M ceiling (reduced from 30M)
+    
+    // Normalize the pScore to a 0-1 range based on the max
+    // Use a lower minimum viable pScore to spread out the bottom tier more
+    const MIN_VIABLE_PSCORE: f64 = 0.3;
+    
+    let normalized = if max_pscore <= MIN_VIABLE_PSCORE {
+        // Edge case: all pScores are very low
+        0.5
+    } else {
+        ((pscore - MIN_VIABLE_PSCORE) / (max_pscore - MIN_VIABLE_PSCORE))
+            .max(0.0)
+            .min(1.0)
+    };
+    
+    // Apply exponential curve: price = min + (max - min) * normalized^k
+    // k < 1 makes it more linear, k > 1 makes top players more expensive
+    const CURVE_STEEPNESS: f64 = 1.7; // Increased from 1.5 to make average players cheaper
+    
+    let price_range = (MAX_PRICE - MIN_PRICE) as f64;
+    let price = MIN_PRICE as f64 + price_range * normalized.powf(CURVE_STEEPNESS);
+    
+    // Round to nearest thousand
+    let rounded_price = ((price / 1000.0).round() * 1000.0) as i32;
+    rounded_price.clamp(MIN_PRICE, MAX_PRICE)
+}
+
 /// Convert rank to a default price (used for players without pScores)
 /// Uses logarithmic curve: higher rank (lower number) = higher price
 fn rank_to_price(rank: i32) -> i32 {
-    const MIN_PRICE: i32 = 4_000_000; // 4M floor
+    const MIN_PRICE: i32 = 6_000_000; // 6M floor (raised to match pScore pricing)
     const MAX_PRICE: i32 = 15_000_000; // 15M ceiling for rank-based
     
     if rank <= 0 {
@@ -284,7 +327,7 @@ fn rank_to_price(rank: i32) -> i32 {
     }
     
     // Logarithmic curve: price = max - k * log(rank)
-    // Top 100: ~15M, Top 1000: ~12M, Top 10000: ~8M, Top 100000: ~5M
+    // Top 100: ~15M, Top 1000: ~12M, Top 10000: ~8M, Top 100000: ~6M
     const K: f64 = 2_500_000.0; // scaling factor
     let log_price = MAX_PRICE as f64 - K * (rank as f64).ln();
     
@@ -332,14 +375,20 @@ pub async fn players_import_pscores(
         .filter(|p| p.eliminated == 0)
         .collect();
     
+    // Find the maximum pScore in the dataset for relative scaling
+    let max_pscore = pscores.values()
+        .copied()
+        .fold(f64::NEG_INFINITY, f64::max);
+    
+    eprintln!("Maximum pScore in dataset: {:.3}", max_pscore);
+    eprintln!("Attempting to match {} pScore entries against {} active players", 
+              pscores.len(), active_players.len());
+    
     // Match players and update prices
     let mut updated_count = 0;
     let mut skipped_eliminated = Vec::new();
     let mut skipped_not_found = Vec::new();
     let mut errors = Vec::new();
-    
-    eprintln!("Attempting to match {} pScore entries against {} active players", 
-              pscores.len(), active_players.len());
     
     for (identifier, pscore) in &pscores {
         // Try to match by user_id first (if identifier is numeric), then by username
@@ -352,7 +401,8 @@ pub async fn players_import_pscores(
         
         match player {
             Some(player) => {
-                let price = pscore_to_price(*pscore);
+                // Calculate price relative to max_pscore
+                let price = pscore_to_price_relative(*pscore, max_pscore);
                 
                 match update_player_price(pool, player.id, req.round.clone(), price).await {
                     Ok(_) => {

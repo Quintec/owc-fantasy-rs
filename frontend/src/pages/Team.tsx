@@ -149,6 +149,7 @@ export default function Team() {
 
         // If player is already drafted, undraft them
         if (player.drafted === true) {
+            console.log('Undrafting player:', player.username, 'Price:', player.price);
             setAllPlayers(prevPlayers => {
                 // First, undraft the player
                 const withUndrafted = prevPlayers.map(p => 
@@ -189,6 +190,10 @@ export default function Team() {
 
         // Check balance
         if (balance < player.price) {
+            console.log('Balance check failed:');
+            console.log('Current balance:', balance);
+            console.log('Player price:', player.price);
+            console.log('Player:', player.username);
             showNotification("Insufficient balance!", 'error');
             return;
         }
@@ -201,6 +206,7 @@ export default function Team() {
         }
 
         // All checks passed, draft the player
+        console.log('Drafting player:', player.username, 'Price:', player.price, 'Current balance:', balance);
         setBalance((currentBalance) => currentBalance - player.price);
 
         // Assign draftOrder based on current number of drafted players
@@ -258,6 +264,11 @@ export default function Team() {
         const draftedPlayers = players.filter(p => p.drafted === true);
         const totalDraftedValue = draftedPlayers.reduce((sum, player) => sum + player.price, 0);
         const remainingBalance = 100000000 - totalDraftedValue;
+        
+        console.log('Starting draft:');
+        console.log('Drafted players:', draftedPlayers.map(p => ({ name: p.username, price: p.price })));
+        console.log('Total drafted value:', totalDraftedValue);
+        console.log('Remaining balance:', remainingBalance);
         
         setBalance(remainingBalance);
         setDraft(true);

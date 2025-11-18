@@ -2,7 +2,8 @@ use crate::db::{
     models::Player,
     players::{
         bulk_create_players, create_player, delete_player, eliminate_player, get_all_players,
-        get_player_by_id, get_player_price, get_remaining_players, get_remaining_players_with_prices, update_player_price,
+        get_all_players_by_round, get_player_by_id, get_player_price, get_remaining_players, 
+        get_remaining_players_with_prices, update_player_price,
     },
 };
 use crate::middleware::auth::admin_middleware;
@@ -21,6 +22,23 @@ async fn players_get(data: web::Data<AppState>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
 
     let players = get_all_players(pool).await;
+
+    match players {
+        Ok(players) => HttpResponse::Ok().json(players),
+        Err(_) => HttpResponse::InternalServerError().body("Error fetching players"),
+    }
+}
+
+#[get("/scores/{round}")]
+async fn players_get_scores_by_round(data: web::Data<AppState>, path: web::Path<String>) -> impl Responder {
+    let pool: &MySqlPool = &data.pool;
+    let round = path.into_inner();
+
+    if !["ro64", "ro32", "ro16", "qf", "sf", "f", "gf"].contains(&round.as_str()) {
+        return HttpResponse::BadRequest().body("Invalid round");
+    }
+
+    let players = get_all_players_by_round(pool, round).await;
 
     match players {
         Ok(players) => HttpResponse::Ok().json(players),
@@ -172,6 +190,7 @@ async fn players_set_price(
 pub fn players_controller() -> actix_web::Scope {
     web::scope("/players")
         .service(players_get)
+        .service(players_get_scores_by_round)
         .service(players_get_remaining)
         .service(players_get_remaining_with_prices)
         .service(players_get_by_id)

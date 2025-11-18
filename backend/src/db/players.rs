@@ -4,9 +4,12 @@ use sqlx::{Error, MySql, MySqlPool, QueryBuilder, mysql::MySqlQueryResult};
 use std::collections::HashMap;
 
 pub async fn get_all_players(pool: &MySqlPool) -> Result<Vec<PlayerWithScore>, Error> {
-    // Get current round to fetch scores
+    // Get previous round to fetch scores (we want to show last round's results)
     let current_round = crate::util::round::compute_round();
-    let round_str = current_round.as_str();
+    let previous_round = get_previous_round(current_round.as_str());
+    
+    // If there's no previous round (e.g., we're in ro64), use current round
+    let round_str = previous_round.as_deref().unwrap_or(current_round.as_str());
     
     sqlx::query_as!(
         PlayerWithScore,
@@ -15,6 +18,19 @@ pub async fn get_all_players(pool: &MySqlPool) -> Result<Vec<PlayerWithScore>, E
          LEFT JOIN PlayerScores ps ON p.id = ps.player_id AND ps.round = ?
          ORDER BY p.id",
         round_str
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_all_players_by_round(pool: &MySqlPool, round: String) -> Result<Vec<PlayerWithScore>, Error> {
+    sqlx::query_as!(
+        PlayerWithScore,
+        "SELECT p.id, p.username, p.avatar_url, p.country, p.`rank`, p.eliminated, CAST(COALESCE(ps.score, 0) AS SIGNED) as `score: i32`
+         FROM Players p
+         LEFT JOIN PlayerScores ps ON p.id = ps.player_id AND ps.round = ?
+         ORDER BY p.id",
+        round
     )
     .fetch_all(pool)
     .await
@@ -88,7 +104,7 @@ pub async fn get_remaining_players_with_prices(
 
 /// Rank-based price calculation for fallback (matches the one in players.rs)
 fn rank_to_price_fallback(rank: i32) -> i32 {
-    const MIN_PRICE: i32 = 4_000_000; // 4M floor
+    const MIN_PRICE: i32 = 6_000_000; // 6M floor (raised to match pScore pricing)
     const MAX_PRICE: i32 = 15_000_000; // 15M ceiling for rank-based
     
     if rank <= 0 {
@@ -335,6 +351,9 @@ pub async fn create_team_from_players(
     let mut total_price: i64 = 0;
     const MAX_BUDGET: i64 = 100_000_000;
 
+    // Determine previous round for fallback pricing
+    let previous_round = get_previous_round(&round);
+
     for pid in &player_ids {
         let rec = sqlx::query!(
             "SELECT country, eliminated, `rank` FROM Players WHERE id = ?",
@@ -369,8 +388,8 @@ pub async fn create_team_from_players(
             )));
         }
 
-        // Try to get price from PlayerPrices, or calculate default from rank
-        let price = match sqlx::query!(
+        // Try to get price from current round, then previous round, then calculate from rank
+        let price = if let Some(price_rec) = sqlx::query!(
             "SELECT price FROM PlayerPrices WHERE player_id = ? AND round = ?",
             pid,
             &round
@@ -378,15 +397,25 @@ pub async fn create_team_from_players(
         .fetch_optional(pool)
         .await?
         {
-            Some(price_rec) => price_rec.price as i64,
-            None => {
-                // Calculate default price based on rank
-                // Formula: Better rank (lower number) = higher price
-                // Price = max(1_000_000, 50_000_000 - (rank * 10_000))
-                // This gives ~50M for rank #1, ~40M for rank #1000, minimum 1M
-                let base_price = 50_000_000i64 - (rank as i64 * 75_000);
-                base_price.max(1_000_000)
+            price_rec.price as i64
+        } else if let Some(ref prev_round) = previous_round {
+            // Try previous round price
+            if let Some(prev_price_rec) = sqlx::query!(
+                "SELECT price FROM PlayerPrices WHERE player_id = ? AND round = ?",
+                pid,
+                prev_round
+            )
+            .fetch_optional(pool)
+            .await?
+            {
+                prev_price_rec.price as i64
+            } else {
+                // Use fallback pricing
+                rank_to_price_fallback(rank) as i64
             }
+        } else {
+            // Use same fallback as other queries (6M-15M logarithmic)
+            rank_to_price_fallback(rank) as i64
         };
 
         total_price += price;

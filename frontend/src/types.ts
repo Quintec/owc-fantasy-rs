@@ -1,6 +1,7 @@
 export type PlayerProps = {
     id: number;
     username: string;
+    avatar_url?: string;
     country: string;
     rank: number;
     price: number;
