@@ -104,7 +104,10 @@ async fn oauth2_callback(
                 .append_header(("Location", frontend_url))
                 .finish()
         }
-        Err(_) => HttpResponse::InternalServerError().body("Auth token error"),
+        Err(e) => {
+            log::error!("Auth token error: {:?}", e);
+            HttpResponse::InternalServerError().body("Auth token error")
+        }
     }
 }
 

@@ -423,6 +423,7 @@ dependencies = [
  "chrono",
  "dotenv",
  "env_logger",
+ "log",
  "oauth2",
  "rand",
  "regex",

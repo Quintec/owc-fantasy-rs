@@ -25,7 +25,10 @@ async fn players_get(data: web::Data<AppState>) -> impl Responder {
 
     match players {
         Ok(players) => HttpResponse::Ok().json(players),
-        Err(_) => HttpResponse::InternalServerError().body("Error fetching players"),
+        Err(e) => {
+            log::error!("Error fetching players: {:?}", e);
+            HttpResponse::InternalServerError().body("Error fetching players")
+        }
     }
 }
 
@@ -38,11 +41,14 @@ async fn players_get_scores_by_round(data: web::Data<AppState>, path: web::Path<
         return HttpResponse::BadRequest().body("Invalid round");
     }
 
-    let players = get_all_players_by_round(pool, round).await;
+    let players = get_all_players_by_round(pool, round.clone()).await;
 
     match players {
         Ok(players) => HttpResponse::Ok().json(players),
-        Err(_) => HttpResponse::InternalServerError().body("Error fetching players"),
+        Err(e) => {
+            log::error!("Error fetching players for round {}: {:?}", round, e);
+            HttpResponse::InternalServerError().body("Error fetching players")
+        }
     }
 }
 
@@ -54,7 +60,10 @@ async fn players_get_remaining(data: web::Data<AppState>) -> impl Responder {
 
     match players {
         Ok(players) => HttpResponse::Ok().json(players),
-        Err(_) => HttpResponse::InternalServerError().body("Error fetching remaining players"),
+        Err(e) => {
+            log::error!("Error fetching remaining players: {:?}", e);
+            HttpResponse::InternalServerError().body("Error fetching remaining players")
+        }
     }
 }
 
@@ -71,11 +80,14 @@ async fn players_get_remaining_with_prices(
         return HttpResponse::BadRequest().body("Invalid round");
     }
 
-    let players = get_remaining_players_with_prices(pool, round).await;
+    let players = get_remaining_players_with_prices(pool, round.clone()).await;
 
     match players {
         Ok(players) => HttpResponse::Ok().json(players),
-        Err(_) => HttpResponse::InternalServerError().body("Error fetching remaining players with prices"),
+        Err(e) => {
+            log::error!("Error fetching remaining players with prices for round {}: {:?}", round, e);
+            HttpResponse::InternalServerError().body("Error fetching remaining players with prices")
+        }
     }
 }
 
@@ -87,7 +99,10 @@ async fn players_get_by_id(data: web::Data<AppState>, path: web::Path<i32>) -> i
     let player = get_player_by_id(pool, player_id).await;
     match player {
         Ok(player) => HttpResponse::Ok().json(player),
-        Err(_) => HttpResponse::NotFound().body("Player not found"),
+        Err(e) => {
+            log::error!("Error fetching player {}: {:?}", player_id, e);
+            HttpResponse::NotFound().body("Player not found")
+        }
     }
 }#[post("/{id}/eliminate", wrap = "from_fn(admin_middleware)")]
 async fn players_eliminate(data: web::Data<AppState>, path: web::Path<i32>) -> impl Responder {
@@ -97,7 +112,10 @@ async fn players_eliminate(data: web::Data<AppState>, path: web::Path<i32>) -> i
     let res = eliminate_player(pool, player_id).await;
     match res {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().body("Error eliminating player"),
+        Err(e) => {
+            log::error!("Error eliminating player {}: {:?}", player_id, e);
+            HttpResponse::InternalServerError().body("Error eliminating player")
+        }
     }
 }
 
@@ -110,7 +128,10 @@ async fn players_uneliminate(data: web::Data<AppState>, path: web::Path<i32>) ->
     let res = crate::db::players::uneliminate_player(pool, player_id).await;
     match res {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().body("Error un-eliminating player"),
+        Err(e) => {
+            log::error!("Error un-eliminating player {}: {:?}", player_id, e);
+            HttpResponse::InternalServerError().body("Error un-eliminating player")
+        }
     }
 }
 
@@ -121,7 +142,10 @@ async fn players_create(data: web::Data<AppState>, player: web::Json<Player>) ->
     let res = create_player(pool, player.into_inner()).await;
     match res {
         Ok(_) => HttpResponse::Created().finish(),
-        Err(_) => HttpResponse::InternalServerError().body("Error creating player"),
+        Err(e) => {
+            log::error!("Error creating player: {:?}", e);
+            HttpResponse::InternalServerError().body("Error creating player")
+        }
     }
 }
 
@@ -133,7 +157,10 @@ async fn players_delete(data: web::Data<AppState>, path: web::Path<i32>) -> impl
     let res = delete_player(pool, player_id).await;
     match res {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().body("Error deleting player"),
+        Err(e) => {
+            log::error!("Error deleting player {}: {:?}", player_id, e);
+            HttpResponse::InternalServerError().body("Error deleting player")
+        }
     }
 }
 
@@ -147,7 +174,10 @@ async fn players_bulk_create(
     let res = bulk_create_players(pool, players.into_inner()).await;
     match res {
         Ok(_) => HttpResponse::Created().finish(),
-        Err(_) => HttpResponse::InternalServerError().body("Error creating players"),
+        Err(e) => {
+            log::error!("Error bulk creating players: {:?}", e);
+            HttpResponse::InternalServerError().body("Error creating players")
+        }
     }
 }
 
@@ -159,10 +189,13 @@ async fn players_get_price(
     let pool: &MySqlPool = &data.pool;
     let (player_id, round) = path.into_inner();
 
-    let price = get_player_price(pool, player_id, round).await;
+    let price = get_player_price(pool, player_id, round.clone()).await;
     match price {
         Ok(price) => HttpResponse::Ok().json(price),
-        Err(_) => HttpResponse::InternalServerError().body("Error fetching player price"),
+        Err(e) => {
+            log::error!("Error fetching player {} price for round {}: {:?}", player_id, round, e);
+            HttpResponse::InternalServerError().body("Error fetching player price")
+        }
     }
 }
 
@@ -180,10 +213,13 @@ async fn players_set_price(
     let pool: &MySqlPool = &data.pool;
     let (player_id, round) = path.into_inner();
 
-    let res = update_player_price(pool, player_id, round, price.price).await;
+    let res = update_player_price(pool, player_id, round.clone(), price.price).await;
     match res {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().body("Error setting player price"),
+        Err(e) => {
+            log::error!("Error setting player {} price for round {}: {:?}", player_id, round, e);
+            HttpResponse::InternalServerError().body("Error setting player price")
+        }
     }
 }
 

@@ -16,7 +16,10 @@ async fn teams_get_by_id(data: web::Data<AppState>, path: web::Path<i32>) -> imp
     let players = get_players_by_team_id(pool, team_id).await;
     match players {
         Ok(players) => HttpResponse::Ok().json(players),
-        Err(_) => HttpResponse::InternalServerError().body("Error retreiving team"),
+        Err(e) => {
+            log::error!("Error retrieving team {}: {:?}", team_id, e);
+            HttpResponse::InternalServerError().body("Error retreiving team")
+        }
     }
 }
 
@@ -63,9 +66,13 @@ async fn teams_update_players(
     match res {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(sqlx::Error::Protocol(msg)) => {
+            log::error!("Team update validation error: {}", msg);
             HttpResponse::BadRequest().body(msg)
         }
-        Err(_) => HttpResponse::InternalServerError().body("Error updating team"),
+        Err(e) => {
+            log::error!("Team update database error: {:?}", e);
+            HttpResponse::InternalServerError().body("Error updating team")
+        }
     }
 }
 

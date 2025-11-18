@@ -15,7 +15,10 @@ async fn users_get(data: web::Data<AppState>) -> impl Responder {
 
     match users {
         Ok(users) => HttpResponse::Ok().json(users),
-        Err(_) => HttpResponse::InternalServerError().body("Error fetching users"),
+        Err(e) => {
+            log::error!("Error fetching users: {:?}", e);
+            HttpResponse::InternalServerError().body("Error fetching users")
+        }
     }
 }
 
@@ -28,7 +31,10 @@ async fn users_get_me(session: actix_session::Session, data: web::Data<AppState>
             let user = get_user_by_id(pool, id).await;
             match user {
                 Ok(user) => HttpResponse::Ok().json(user),
-                Err(_) => HttpResponse::NotFound().body("User not found"),
+                Err(e) => {
+                    log::error!("Error fetching user {}: {:?}", id, e);
+                    HttpResponse::NotFound().body("User not found")
+                }
             }
         }
         None => HttpResponse::Unauthorized().body("Not logged in"),
@@ -43,7 +49,10 @@ async fn users_get_by_id(data: web::Data<AppState>, path: web::Path<i32>) -> imp
     let user = get_user_by_id(pool, id).await;
     match user {
         Ok(user) => HttpResponse::Ok().json(user),
-        Err(_) => HttpResponse::NotFound().body("User not found"),
+        Err(e) => {
+            log::error!("Error fetching user {}: {:?}", id, e);
+            HttpResponse::NotFound().body("User not found")
+        }
     }
 }
 
@@ -55,7 +64,10 @@ async fn users_get_teams(data: web::Data<AppState>, path: web::Path<i32>) -> imp
     let teams = get_teams_by_user_id(pool, id).await;
     match teams {
         Ok(teams) => HttpResponse::Ok().json(teams),
-        Err(_) => HttpResponse::NotFound().body("User not found"),
+        Err(e) => {
+            log::error!("Error fetching teams for user {}: {:?}", id, e);
+            HttpResponse::NotFound().body("User not found")
+        }
     }
 }
 
@@ -71,10 +83,13 @@ async fn users_get_team_by_round(
         return HttpResponse::BadRequest().body("Invalid round");
     }
 
-    let team = get_round_team_by_user_id(pool, id, round).await;
+    let team = get_round_team_by_user_id(pool, id, round.clone()).await;
     match team {
         Ok(team) => HttpResponse::Ok().json(team),
-        Err(_) => HttpResponse::NotFound().body("User not found"),
+        Err(e) => {
+            log::error!("Error fetching team for user {} round {}: {:?}", id, round, e);
+            HttpResponse::NotFound().body("User not found")
+        }
     }
 }
 
@@ -85,7 +100,10 @@ async fn users_get_leaderboard(data: web::Data<AppState>) -> impl Responder {
     let leaderboard = get_leaderboard(pool).await;
     match leaderboard {
         Ok(users) => HttpResponse::Ok().json(users),
-        Err(_) => HttpResponse::InternalServerError().body("Error fetching leaderboard"),
+        Err(e) => {
+            log::error!("Error fetching leaderboard: {:?}", e);
+            HttpResponse::InternalServerError().body("Error fetching leaderboard")
+        }
     }
 }
 
