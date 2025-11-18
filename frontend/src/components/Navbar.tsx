@@ -32,6 +32,11 @@ export default function Navbar() {
               Leaderboards
             </Link>
           </li>
+          <li>
+            <Link to="/scores" className="hover:text-purple-400 transition-colors">
+              Scores
+            </Link>
+          </li>
           {/* <li>
             <Link to="/faq" className="hover:text-purple-400 transition-colors">
               FAQ

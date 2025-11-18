@@ -15,6 +15,8 @@ export default function Admin() {
   const [status, setStatus] = useState<string | null>(null);
   const [country, setCountry] = useState<string>('');
   const [players, setPlayers] = useState<PlayerProps[]>([]);
+  const [batchSize, setBatchSize] = useState(50);
+  const [isBatchImporting, setIsBatchImporting] = useState(false);
 
   // Update selected round when current round changes
   useEffect(() => {
@@ -102,6 +104,73 @@ export default function Admin() {
     }
   };
 
+  const importPlayersInBatches = async () => {
+    try {
+      setIsBatchImporting(true);
+      setStatus('Starting batch import...');
+      
+      // Split the markdown by lines
+      const lines = participantsText.split('\n').filter(l => l.trim());
+      const batches: string[][] = [];
+      let currentBatch: string[] = [];
+      
+      for (const line of lines) {
+        currentBatch.push(line);
+        // Create a new batch after every `batchSize` lines
+        if (currentBatch.length >= batchSize) {
+          batches.push([...currentBatch]);
+          currentBatch = [];
+        }
+      }
+      
+      // Don't forget the last batch
+      if (currentBatch.length > 0) {
+        batches.push(currentBatch);
+      }
+      
+      let totalImported = 0;
+      let totalErrors: string[] = [];
+      
+      for (let i = 0; i < batches.length; i++) {
+        const batchText = batches[i].join('\n');
+        setStatus(`Importing batch ${i + 1}/${batches.length}... (${totalImported} players imported so far)`);
+        
+        try {
+          const result = await importPlayersFromParticipants(batchText);
+          totalImported += result.count;
+          totalErrors = totalErrors.concat(result.errors);
+          
+          // Small delay between batches to avoid overwhelming the server
+          if (i < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (err: any) {
+          const errorMsg = err?.response?.data?.error || err?.message || String(err);
+          setStatus(`Error in batch ${i + 1}: ${errorMsg}\nContinuing with remaining batches...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      setStatus(
+        `✓ Batch import complete!\n` +
+        `Total players imported: ${totalImported}\n` +
+        `Batches processed: ${batches.length}\n` +
+        (totalErrors.length > 0 ? `Errors: ${totalErrors.slice(0, 5).join(', ')}${totalErrors.length > 5 ? '...' : ''}` : '')
+      );
+      
+      // Refresh players list
+      const updated = await getAllPlayers();
+      setPlayers(updated);
+      setParticipantsText(''); // Clear the textarea
+      
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.error || err?.message || String(err);
+      setStatus('Batch import failed: ' + errorMsg);
+    } finally {
+      setIsBatchImporting(false);
+    }
+  };
+
   const importPlayerPrices = async () => {
     try {
       setStatus('Importing player prices from pScores...');
@@ -159,10 +228,40 @@ export default function Admin() {
           onChange={(e) => setParticipantsText(e.target.value)} 
           className="w-full bg-gray-900 p-2 rounded h-60 font-mono text-sm"
           placeholder="Paste markdown table here, e.g.:&#10;| ::{ flag=US }:: | **United States** | **[player1](https://osu.ppy.sh/users/123)**, [player2](https://osu.ppy.sh/users/456) |"
+          disabled={isBatchImporting}
         />
-        <button onClick={importPlayers} className="mt-2 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">
-          Import Players
-        </button>
+        <div className="flex gap-2 items-center mt-2">
+          <button 
+            onClick={importPlayers} 
+            className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+            disabled={isBatchImporting}
+          >
+            Import All at Once
+          </button>
+          <button 
+            onClick={importPlayersInBatches} 
+            className="bg-green-600 px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+            disabled={isBatchImporting}
+          >
+            {isBatchImporting ? 'Importing...' : 'Import in Batches (Recommended)'}
+          </button>
+          <label className="text-sm text-gray-400 ml-4">
+            Batch size:
+            <input 
+              type="number" 
+              value={batchSize} 
+              onChange={(e) => setBatchSize(parseInt(e.target.value) || 50)}
+              className="bg-gray-900 px-2 py-1 rounded ml-2 w-20"
+              min="10"
+              max="200"
+              disabled={isBatchImporting}
+            />
+            <span className="ml-1">lines/batch</span>
+          </label>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          💡 For large imports (500+ players), use "Import in Batches" to avoid timeouts
+        </p>
       </div>
 
       {/* Import pScores Section */}
@@ -199,8 +298,13 @@ export default function Admin() {
 
       <div className="mb-4">
         <label className="block mb-1">Eliminate players in tournament:</label>
-        <input placeholder="Optional country code (e.g. US)" value={country} onChange={e => setCountry(e.target.value.toUpperCase())} className="bg-gray-900 p-2 rounded mr-2 w-100" />
-        <button onClick={eliminateTeam} className="bg-red-600 px-4 py-2 rounded mr-2">Eliminate players</button>
+        <input 
+          placeholder="Optional country code(s) - single (US) or comma-separated (AR, BY, BE, ...)" 
+          value={country} 
+          onChange={e => setCountry(e.target.value.toUpperCase())} 
+          className="bg-gray-900 p-2 rounded mr-2 w-full md:w-auto md:min-w-[400px]" 
+        />
+        <button onClick={eliminateTeam} className="bg-red-600 px-4 py-2 rounded mr-2 mt-2">Eliminate players</button>
         <button onClick={async () => {
           try {
             setStatus('Un-eliminating players...');
@@ -209,7 +313,7 @@ export default function Admin() {
           } catch (err: any) {
             setStatus('Error: ' + (err?.message || String(err)));
           }
-        }} className="bg-green-600 px-4 py-2 rounded">Un-eliminate players</button>
+        }} className="bg-green-600 px-4 py-2 rounded mt-2">Un-eliminate players</button>
       </div>
 
       {status && (
