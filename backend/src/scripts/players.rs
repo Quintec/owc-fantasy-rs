@@ -23,7 +23,6 @@ pub struct ImportParticipantsResponse {
     pub errors: Vec<String>,
 }
 
-// Extract player IDs from markdown text containing osu! profile links
 pub fn extract_player_ids(text: &str) -> Vec<i32> {
     let re = regex::Regex::new(r"osu\.ppy\.sh/users/(\d+)").unwrap();
     let mut ids = std::collections::HashSet::new();
@@ -39,8 +38,6 @@ pub fn extract_player_ids(text: &str) -> Vec<i32> {
     ids.into_iter().collect()
 }
 
-// Import players from participants markdown text
-// This endpoint extracts IDs, fetches data via rosu-v2, and bulk inserts into DB
 #[post("/import_from_participants", wrap = "from_fn(admin_middleware)")]
 pub async fn players_import_from_participants(
     data: web::Data<AppState>,
@@ -48,7 +45,6 @@ pub async fn players_import_from_participants(
 ) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
     
-    // Get OAuth2 credentials from env
     let client_id = match env::var("OAUTH_CLIENT_ID") {
         Ok(v) => v,
         Err(_) => return HttpResponse::InternalServerError().json(serde_json::json!({
@@ -62,7 +58,6 @@ pub async fn players_import_from_participants(
         })),
     };
     
-    // Extract player IDs from markdown
     let player_ids = extract_player_ids(&req.participants_text);
     
     eprintln!("Extracted {} player IDs: {:?}", player_ids.len(), player_ids);
@@ -73,7 +68,6 @@ pub async fn players_import_from_participants(
         }));
     }
     
-    // Create rosu-v2 client
     let osu = match Osu::builder()
         .client_id(client_id.parse().unwrap_or(0))
         .client_secret(client_secret)
@@ -89,7 +83,6 @@ pub async fn players_import_from_participants(
         }
     };
     
-    // Fetch player data from osu! API using rosu-v2
     let mut players = Vec::new();
     let mut errors = Vec::new();
     
@@ -120,7 +113,6 @@ pub async fn players_import_from_participants(
         }
     }
     
-    // Bulk insert into database
     if !players.is_empty() {
         match bulk_create_players(pool, players.clone()).await {
             Ok(_) => {
@@ -145,8 +137,6 @@ pub async fn players_import_from_participants(
         }))
     }
 }
-
-// ============= pScore Import =============
 
 #[derive(Debug, Deserialize)]
 pub struct ImportPScoresRequest {
@@ -173,9 +163,7 @@ pub fn parse_pscores_flexible(text: &str) -> HashMap<String, f64> {
             continue;
         }
         
-        // Split by tab or whitespace, but preserve username with spaces
         if line.contains('\t') {
-            // Tab-separated: split by tab
             let parts: Vec<&str> = line.split('\t').collect();
             if parts.len() >= 2 {
                 let identifier = parts[0].trim().to_string();
@@ -184,8 +172,6 @@ pub fn parse_pscores_flexible(text: &str) -> HashMap<String, f64> {
                 }
             }
         } else {
-            // Space-separated: split from the RIGHT to get the last number
-            // Username can have spaces, so we find the last whitespace-separated token
             if let Some(last_space_idx) = line.rfind(char::is_whitespace) {
                 let identifier = line[..last_space_idx].trim().to_string();
                 let score_str = line[last_space_idx..].trim();
@@ -200,103 +186,32 @@ pub fn parse_pscores_flexible(text: &str) -> HashMap<String, f64> {
     scores
 }
 
-/// Convert pscore to price using normalized convex curve
-/// This creates exponentially higher prices for elite players, forcing trade-offs
-/// 
-/// PSCORE FORMULA ANALYSIS:
-/// ════════════════════════════════════════════════════════════════════
-/// pScore = [Σ(S/M) / n] × √(n / ΣN/m)
-/// where:
-/// - S = player score on a map
-/// - M = median score on that map
-/// - n = maps played by player
-/// - N = mean maps per player in a match
-/// - m = matches played by player
-///
-/// What this means:
-/// • pScore rewards BOTH performance (S/M ratio) AND participation (√n factor)
-/// • Elite (2.2): Consistently 2.2x median + high participation
-/// • Good (1.6): Consistently 1.6x median + decent participation  
-/// • Avg (1.0): At median + average participation
-/// 
-/// STRATEGIC BALANCE ANALYSIS:
-/// ════════════════════════════════════════════════════════════════════
-/// Fantasy scoring system (from score_calc.rs):
-/// - Participation: 3-5 pts (30-65% or >65% of maps)
-/// - Performance: 1 pt per highest score on map, 1 pt per above-avg score
-/// - Match cost: 1-5 pts (2nd on team, 1st on team, 1st in match)
-/// - Team win: +2 pts
-/// 
-/// KEY STRATEGIC INSIGHT:
-/// High pScore ≠ guaranteed high fantasy points!
-/// • Elite (2.2) players might skip maps → lose participation pts
-/// • Good (1.6) players with full participation can outscore elites
-/// • Match cost rankings depend on team composition, not just skill
-/// • Team win bonus (2pts) adds randomness
-///
-/// PRICING STRATEGY:
-/// ════════════════════════════════════════════════════════════════════
-/// Target: elite=30M, good=15M, avg=10M
-/// 
-/// This creates multiple viable strategies:
-/// 1. "Balanced" (2 elite + 2 good + 4 avg = 60+30+40 = 130M) ✗ Over
-/// 2. "Value Play" (1 elite + 4 good + 3 avg = 30+60+30 = 120M) ✗ Over  
-/// 3. "All-Around" (7 good + 1 avg = 105+10 = 115M) ✗ Over
-/// 4. "Safe Floor" (1 elite + 3 good + 4 avg = 30+45+40 = 115M) ✗ Over
-/// 5. "Depth" (5 good + 3 avg = 75+30 = 105M) ✗ Close but over
-/// 6. "Participation" (1 elite + 2 good + 5 avg = 30+30+50 = 110M) ✗ Over
+/// pScore-based pricing: 6M-27M range with exponential curve (steepness=1.7)
+/// Normalized against max pScore in dataset to ensure consistent pricing across rounds
 fn pscore_to_price(pscore: f64) -> i32 {
-    // PScore is a normalized performance metric centered around 1.0
-    // Uses z-score based pricing with exponential curve
-    
     const TOTAL_BUDGET: f64 = 100_000_000.0;
-    const MIN_PRICE: i32 = 4_000_000; // 4M floor
-    const MAX_PRICE: i32 = 35_000_000; // 35M ceiling
-    
-    // Population parameters (empirically derived from tournament data)
+    const MIN_PRICE: i32 = 4_000_000;
+    const MAX_PRICE: i32 = 35_000_000;
     const MEAN_PSCORE: f64 = 1.0;
-    const STDDEV_PSCORE: f64 = 0.5; // Adjusted for realistic variance
+    const STDDEV_PSCORE: f64 = 0.5;
     
-    // Calculate z-score (standard deviations from mean)
     let z_score = (pscore - MEAN_PSCORE) / STDDEV_PSCORE;
-    
-    // Base price for average player (z=0)
-    const BASE_PRICE: f64 = 7_500_000.0; // 7.5M for average (cheaper)
-    
-    // Exponential curve: price = base * e^(k*z)
-    // k = 0.45 gives steeper curve for elite players:
-    // - pscore 0.5 (z=-1): ~5M (cheaper)
-    // - pscore 1.0 (z=0): 7.5M (cheaper)
-    // - pscore 1.5 (z=1): ~11.7M (cheaper)
-    // - pscore 2.0 (z=2): ~18.3M (good)
-    // - pscore 2.5 (z=3): ~28.6M (elite, more expensive)
-    // Allows: 1 elite (28M) + 2 good (36M) + 5 average (37.5M) = 101.5M (close)
+    const BASE_PRICE: f64 = 7_500_000.0;
     const CURVE_STEEPNESS: f64 = 0.45;
     
     let price = BASE_PRICE * (CURVE_STEEPNESS * z_score).exp();
-    
-    // Round to nearest thousand and enforce bounds
     let rounded_price = ((price / 1000.0).round() * 1000.0) as i32;
     rounded_price.clamp(MIN_PRICE, MAX_PRICE)
 }
 
-/// Convert pscore to price using relative scaling based on the maximum pScore in the dataset
-/// This ensures prices scale appropriately regardless of the actual pScore range
-/// 
-/// For example:
-/// - If max pScore is 1.926, that player gets ~30M
-/// - If max pScore is 2.5, that player gets ~30M
-/// - All other players scale proportionally
+/// pScore-based pricing: 6M-27M range with exponential curve (steepness=1.7)
+/// Normalized against max pScore in dataset to ensure consistent pricing across rounds
 fn pscore_to_price_relative(pscore: f64, max_pscore: f64) -> i32 {
-    const MIN_PRICE: i32 = 6_000_000; // 6M floor (raised to avoid too many at minimum)
-    const MAX_PRICE: i32 = 27_000_000; // 27M ceiling (reduced from 30M)
-    
-    // Normalize the pScore to a 0-1 range based on the max
-    // Use a lower minimum viable pScore to spread out the bottom tier more
+    const MIN_PRICE: i32 = 6_000_000;
+    const MAX_PRICE: i32 = 27_000_000;
     const MIN_VIABLE_PSCORE: f64 = 0.3;
     
     let normalized = if max_pscore <= MIN_VIABLE_PSCORE {
-        // Edge case: all pScores are very low
         0.5
     } else {
         ((pscore - MIN_VIABLE_PSCORE) / (max_pscore - MIN_VIABLE_PSCORE))
@@ -304,34 +219,26 @@ fn pscore_to_price_relative(pscore: f64, max_pscore: f64) -> i32 {
             .min(1.0)
     };
     
-    // Apply exponential curve: price = min + (max - min) * normalized^k
-    // k < 1 makes it more linear, k > 1 makes top players more expensive
-    const CURVE_STEEPNESS: f64 = 1.7; // Increased from 1.5 to make average players cheaper
-    
+    const CURVE_STEEPNESS: f64 = 1.7;
     let price_range = (MAX_PRICE - MIN_PRICE) as f64;
     let price = MIN_PRICE as f64 + price_range * normalized.powf(CURVE_STEEPNESS);
     
-    // Round to nearest thousand
     let rounded_price = ((price / 1000.0).round() * 1000.0) as i32;
     rounded_price.clamp(MIN_PRICE, MAX_PRICE)
 }
 
-/// Convert rank to a default price (used for players without pScores)
-/// Uses logarithmic curve: higher rank (lower number) = higher price
+/// Rank-based pricing fallback: 6M-15M logarithmic curve
+/// Used when no pScore available (higher rank = higher price)
 fn rank_to_price(rank: i32) -> i32 {
-    const MIN_PRICE: i32 = 6_000_000; // 6M floor (raised to match pScore pricing)
-    const MAX_PRICE: i32 = 15_000_000; // 15M ceiling for rank-based
+    const MIN_PRICE: i32 = 6_000_000;
+    const MAX_PRICE: i32 = 15_000_000;
     
     if rank <= 0 {
         return MIN_PRICE;
     }
     
-    // Logarithmic curve: price = max - k * log(rank)
-    // Top 100: ~15M, Top 1000: ~12M, Top 10000: ~8M, Top 100000: ~6M
-    const K: f64 = 2_500_000.0; // scaling factor
+    const K: f64 = 2_500_000.0;
     let log_price = MAX_PRICE as f64 - K * (rank as f64).ln();
-    
-    // Clamp between min and max, round to nearest thousand
     let price = log_price.max(MIN_PRICE as f64).min(MAX_PRICE as f64);
     ((price / 1000.0).round() * 1000.0) as i32
 }
@@ -351,7 +258,6 @@ pub async fn players_import_pscores(
         }));
     }
     
-    // Parse pScores from text (accepts both user_id and username)
     let pscores = parse_pscores_flexible(&req.pscore_text);
     
     if pscores.is_empty() {
@@ -360,7 +266,6 @@ pub async fn players_import_pscores(
         }));
     }
     
-    // Get all players from database
     let all_players = match get_all_players(pool).await {
         Ok(players) => players,
         Err(e) => {
@@ -370,12 +275,10 @@ pub async fn players_import_pscores(
         }
     };
     
-    // Filter out eliminated players (they won't have pScores for future rounds)
     let active_players: Vec<_> = all_players.iter()
         .filter(|p| p.eliminated == 0)
         .collect();
     
-    // Find the maximum pScore in the dataset for relative scaling
     let max_pscore = pscores.values()
         .copied()
         .fold(f64::NEG_INFINITY, f64::max);
@@ -384,24 +287,20 @@ pub async fn players_import_pscores(
     eprintln!("Attempting to match {} pScore entries against {} active players", 
               pscores.len(), active_players.len());
     
-    // Match players and update prices
     let mut updated_count = 0;
     let mut skipped_eliminated = Vec::new();
     let mut skipped_not_found = Vec::new();
     let mut errors = Vec::new();
     
     for (identifier, pscore) in &pscores {
-        // Try to match by user_id first (if identifier is numeric), then by username
         let player = if let Ok(user_id) = identifier.parse::<i32>() {
             active_players.iter().find(|p| p.id == user_id)
         } else {
-            // Case-insensitive username match
             active_players.iter().find(|p| p.username.eq_ignore_ascii_case(identifier))
         };
         
         match player {
             Some(player) => {
-                // Calculate price relative to max_pscore
                 let price = pscore_to_price_relative(*pscore, max_pscore);
                 
                 match update_player_price(pool, player.id, req.round.clone(), price).await {
@@ -416,7 +315,6 @@ pub async fn players_import_pscores(
                 }
             }
             None => {
-                // Check if player exists but is eliminated (try both ID and username)
                 let is_eliminated = if let Ok(user_id) = identifier.parse::<i32>() {
                     all_players.iter().any(|p| p.id == user_id && p.eliminated != 0)
                 } else {
@@ -469,7 +367,6 @@ pub async fn players_set_default_prices(
         }));
     }
     
-    // Get all players
     let all_players = match get_all_players(pool).await {
         Ok(players) => players,
         Err(e) => {

@@ -1,8 +1,8 @@
 use crate::db::{
     models::Player,
     players::{
-        bulk_create_players, create_player, delete_player, eliminate_player, get_all_players,
-        get_all_players_by_round, get_player_by_id, get_player_price, get_remaining_players, 
+        bulk_create_players, create_player, delete_player, eliminate_player, get_active_players, get_all_players,
+        get_all_players_by_round, get_player_by_id, get_player_price,
         get_remaining_players_with_prices, update_player_price,
     },
 };
@@ -50,7 +50,7 @@ async fn players_get_scores_by_round(data: web::Data<AppState>, path: web::Path<
 async fn players_get_remaining(data: web::Data<AppState>) -> impl Responder {
     let pool: &MySqlPool = &data.pool;
 
-    let players = get_remaining_players(pool).await;
+    let players = get_active_players(pool).await;
 
     match players {
         Ok(players) => HttpResponse::Ok().json(players),

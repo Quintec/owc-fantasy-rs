@@ -41,7 +41,6 @@ async fn teams_update_players(
         return HttpResponse::BadRequest().body("Invalid round");
     }
 
-    // Validate that the round matches the current round
     let current_round = compute_round();
     if round != current_round.as_str() {
         return HttpResponse::BadRequest().body(format!(
@@ -50,7 +49,6 @@ async fn teams_update_players(
         ));
     }
 
-    // Validate captain_id is in player_ids if provided
     if let Some(captain) = captain_id {
         if !player_ids.contains(&captain) {
             return HttpResponse::BadRequest().body(
