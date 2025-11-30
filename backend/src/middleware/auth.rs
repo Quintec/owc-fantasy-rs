@@ -15,7 +15,7 @@ pub async fn auth_middleware(
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
     // Allow auth endpoints and public views (leaderboard and player scores)
     if req.path().starts_with("/api/auth")
-        || req.path() == "/api/users/leaderboard"
+        || req.path().starts_with("/api/users/leaderboard")
         || req.path().starts_with("/api/players/scores")
     {
         return next.call(req).await;

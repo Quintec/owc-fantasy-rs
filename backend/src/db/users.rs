@@ -63,10 +63,41 @@ pub async fn get_leaderboard(pool: &MySqlPool) -> Result<Vec<UserWithScore>, Err
     .fetch_all(pool)
     .await?;
 
-    // DEBUG: Print what we got from the database
-    for user in &users {
-        eprintln!("DEBUG get_leaderboard: id={}, username={}, score={}", user.id, user.username, user.score);
-    }
+    Ok(users)
+}
+
+/// Get users with scores for a specific round only
+pub async fn get_leaderboard_by_round(pool: &MySqlPool, round: &str) -> Result<Vec<UserWithScore>, Error> {
+    let users = sqlx::query_as!(
+        UserWithScore,
+        r#"
+        SELECT 
+            u.id,
+            u.username,
+            u.avatar_url,
+            CAST(COALESCE(scores.total_score, 0) AS SIGNED) as `score: i64`
+        FROM Users u
+        LEFT JOIN (
+            SELECT 
+                t.user_id,
+                SUM(
+                    CASE 
+                        WHEN tp.player_id = t.captain_id THEN COALESCE(ps.score, 0) * 2
+                        ELSE COALESCE(ps.score, 0)
+                    END
+                ) as total_score
+            FROM Teams t
+            INNER JOIN TeamPlayers tp ON t.id = tp.team_id
+            LEFT JOIN PlayerScores ps ON tp.player_id = ps.player_id AND ps.round = t.round
+            WHERE t.round = ?
+            GROUP BY t.user_id
+        ) AS scores ON u.id = scores.user_id
+        ORDER BY `score: i64` DESC
+        "#,
+        round
+    )
+    .fetch_all(pool)
+    .await?;
 
     Ok(users)
 }
