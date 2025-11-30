@@ -321,7 +321,7 @@ pub async fn create_team_from_players(
 
     let mut country_counts: HashMap<String, i32> = HashMap::new();
     let mut total_price: i64 = 0;
-    const MAX_BUDGET: i64 = 100_000_000;
+    const MAX_BUDGET: i64 = 120_000_000;
 
     let previous_round = get_previous_round(&round);
 
@@ -352,9 +352,9 @@ pub async fn create_team_from_players(
         let rank = rec.rank;
         let count = country_counts.entry(country.clone()).or_insert(0);
         *count += 1;
-        if *count > 2 {
+        if *count > 3 {
             return Err(Error::Protocol(format!(
-                "validation failed: more than 2 players from country {}",
+                "validation failed: more than 3 players from country {}",
                 country
             )));
         }

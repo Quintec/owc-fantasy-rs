@@ -20,7 +20,7 @@ export default function Leaderboard() {
     }, []);
 
     return (
-        <div className="flex flex-col gap-4 m-10">
+        <div className="flex flex-col gap-4 m-10 justify-center">
         {users.map((u, index) => (
             <UserList id={u.id} username={u.username} score={u.score} rank={index} key={index}/>
         ))}
