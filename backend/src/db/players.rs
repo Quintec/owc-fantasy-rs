@@ -4,11 +4,9 @@ use sqlx::{Error, MySql, MySqlPool, QueryBuilder, mysql::MySqlQueryResult};
 use std::collections::HashMap;
 
 pub async fn get_all_players(pool: &MySqlPool) -> Result<Vec<PlayerWithScore>, Error> {
-    // Get previous round to fetch scores (we want to show last round's results)
     let current_round = crate::util::round::compute_round();
     let previous_round = get_previous_round(current_round.as_str());
     
-    // If there's no previous round (e.g., we're in ro64), use current round
     let round_str = previous_round.as_deref().unwrap_or(current_round.as_str());
     
     sqlx::query_as!(
@@ -36,8 +34,7 @@ pub async fn get_all_players_by_round(pool: &MySqlPool, round: String) -> Result
     .await
 }
 
-pub async fn get_remaining_players(pool: &MySqlPool) -> Result<Vec<Player>, Error> {
-    // get players with eliminated field false
+pub async fn get_active_players(pool: &MySqlPool) -> Result<Vec<Player>, Error> {
     sqlx::query_as!(
         Player,
         "SELECT id, username, avatar_url, country, `rank`, eliminated FROM Players WHERE eliminated = 0"
@@ -102,25 +99,22 @@ pub async fn get_remaining_players_with_prices(
     Ok(players)
 }
 
-/// Rank-based price calculation for fallback (matches the one in players.rs)
+/// Rank-based pricing fallback: 6M-15M logarithmic curve
+/// Used when no pScore available (higher rank = higher price)
 fn rank_to_price_fallback(rank: i32) -> i32 {
-    const MIN_PRICE: i32 = 6_000_000; // 6M floor (raised to match pScore pricing)
-    const MAX_PRICE: i32 = 15_000_000; // 15M ceiling for rank-based
+    const MIN_PRICE: i32 = 6_000_000;
+    const MAX_PRICE: i32 = 15_000_000;
     
     if rank <= 0 {
         return MIN_PRICE;
     }
     
-    // Logarithmic curve: price = max - k * log(rank)
-    const K: f64 = 2_500_000.0; // scaling factor
+    const K: f64 = 2_500_000.0;
     let log_price = MAX_PRICE as f64 - K * (rank as f64).ln();
-    
-    // Clamp between min and max, round to nearest thousand
     let price = log_price.max(MIN_PRICE as f64).min(MAX_PRICE as f64);
     ((price / 1000.0).round() * 1000.0) as i32
 }
 
-/// Helper function to determine the previous round
 fn get_previous_round(round: &str) -> Option<String> {
     match round {
         "gf" => Some("f".to_string()),
@@ -140,7 +134,6 @@ pub async fn eliminate_player(pool: &MySqlPool, player_id: i32) -> Result<MySqlQ
         .await
 }
 
-// just in case we made a mistake
 pub async fn uneliminate_player(pool: &MySqlPool, player_id: i32) -> Result<MySqlQueryResult, Error> {
     sqlx::query!("UPDATE Players SET eliminated = 0 WHERE id = ?", player_id)
         .execute(pool)
@@ -239,33 +232,15 @@ pub async fn update_player_price(
     round: String,
     price: i32,
 ) -> Result<MySqlQueryResult, Error> {
-    let player_price = sqlx::query!(
-        "SELECT * FROM PlayerPrices WHERE player_id = ? AND round = ?",
+    sqlx::query!(
+        "INSERT INTO PlayerPrices (player_id, round, price) VALUES (?, ?, ?) 
+         ON DUPLICATE KEY UPDATE price = VALUES(price)",
         player_id,
-        round
+        round,
+        price
     )
-    .fetch_one(pool)
-    .await;
-
-    if player_price.is_ok() {
-        sqlx::query!(
-            "UPDATE PlayerPrices SET price = ?, round = ? WHERE player_id = ?",
-            price,
-            round,
-            player_id
-        )
-        .execute(pool)
-        .await
-    } else {
-        sqlx::query!(
-            "INSERT INTO PlayerPrices (player_id, price, round) VALUES (?, ?, ?)",
-            player_id,
-            price,
-            round
-        )
-        .execute(pool)
-        .await
-    }
+    .execute(pool)
+    .await
 }
 
 pub async fn get_player_round_score(pool: &MySqlPool, player_id: i32, round: String) -> Result<i32, Error> {
@@ -330,7 +305,6 @@ pub async fn create_team_from_players(
     round: String,
     captain_id: Option<i32>,
 ) -> Result<MySqlQueryResult, Error> {
-    // Validate count
     if player_ids.len() != 8 {
         return Err(Error::Protocol(format!(
             "validation failed: team must contain exactly 8 players (got {})",
@@ -338,7 +312,6 @@ pub async fn create_team_from_players(
         )));
     }
 
-    // Validate no duplicates
     let unique_players: std::collections::HashSet<_> = player_ids.iter().collect();
     if unique_players.len() != player_ids.len() {
         return Err(Error::Protocol(
@@ -346,12 +319,10 @@ pub async fn create_team_from_players(
         ));
     }
 
-    // Validate country limits and total price
     let mut country_counts: HashMap<String, i32> = HashMap::new();
     let mut total_price: i64 = 0;
-    const MAX_BUDGET: i64 = 100_000_000;
+    const MAX_BUDGET: i64 = 120_000_000;
 
-    // Determine previous round for fallback pricing
     let previous_round = get_previous_round(&round);
 
     for pid in &player_ids {
@@ -381,14 +352,13 @@ pub async fn create_team_from_players(
         let rank = rec.rank;
         let count = country_counts.entry(country.clone()).or_insert(0);
         *count += 1;
-        if *count > 2 {
+        if *count > 3 {
             return Err(Error::Protocol(format!(
-                "validation failed: more than 2 players from country {}",
+                "validation failed: more than 3 players from country {}",
                 country
             )));
         }
 
-        // Try to get price from current round, then previous round, then calculate from rank
         let price = if let Some(price_rec) = sqlx::query!(
             "SELECT price FROM PlayerPrices WHERE player_id = ? AND round = ?",
             pid,
@@ -399,7 +369,6 @@ pub async fn create_team_from_players(
         {
             price_rec.price as i64
         } else if let Some(ref prev_round) = previous_round {
-            // Try previous round price
             if let Some(prev_price_rec) = sqlx::query!(
                 "SELECT price FROM PlayerPrices WHERE player_id = ? AND round = ?",
                 pid,
@@ -410,11 +379,9 @@ pub async fn create_team_from_players(
             {
                 prev_price_rec.price as i64
             } else {
-                // Use fallback pricing
                 rank_to_price_fallback(rank) as i64
             }
         } else {
-            // Use same fallback as other queries (6M-15M logarithmic)
             rank_to_price_fallback(rank) as i64
         };
 
@@ -428,11 +395,8 @@ pub async fn create_team_from_players(
         )));
     }
 
-    // create or update team
     let mut tx = pool.begin().await?;
 
-    // Use INSERT ... ON DUPLICATE KEY UPDATE to handle upsert atomically
-    // This prevents race conditions and works with UNIQUE(user_id, round) constraint
     let team_res = sqlx::query!(
         "INSERT INTO Teams (user_id, round, captain_id) VALUES (?, ?, ?) AS new
          ON DUPLICATE KEY UPDATE captain_id = new.captain_id",
@@ -443,18 +407,15 @@ pub async fn create_team_from_players(
     .execute(&mut *tx)
     .await?;
 
-    // Get the team ID (either newly inserted or existing)
     let team_id: i32 = if team_res.last_insert_id() > 0 {
         team_res.last_insert_id() as i32
     } else {
-        // For UPDATE case, we need to fetch the ID
         sqlx::query!("SELECT id FROM Teams WHERE user_id = ? AND round = ?", user_id, &round)
             .fetch_one(&mut *tx)
             .await?
             .id
     };
 
-    // Remove existing players for this team (if any)
     sqlx::query!(
         "DELETE FROM TeamPlayers WHERE team_id = ?",
         team_id
@@ -464,7 +425,6 @@ pub async fn create_team_from_players(
 
     let mut final_res: Option<MySqlQueryResult> = Some(team_res);
 
-    // insert players and initialize their scores if they don't exist
     for pid in &player_ids {
         let res = sqlx::query!(
             "INSERT INTO TeamPlayers (team_id, player_id) VALUES (?, ?)",
@@ -474,9 +434,6 @@ pub async fn create_team_from_players(
         .execute(&mut *tx)
         .await?;
 
-        // Initialize PlayerScore entry for this player/round if it doesn't exist
-        // This ensures players always have a score entry (defaulting to 0)
-        // ON DUPLICATE KEY UPDATE with no-op keeps existing scores intact
         sqlx::query!(
             "INSERT INTO PlayerScores (player_id, round, score, total_score, match_count) VALUES (?, ?, 0, 0, 0) ON DUPLICATE KEY UPDATE player_id = player_id",
             pid,
@@ -488,7 +445,6 @@ pub async fn create_team_from_players(
         final_res = Some(res);
     }
 
-    // Commit the transaction
     tx.commit().await?;
 
     final_res.ok_or_else(|| Error::Protocol("no DB operation performed".to_string()))

@@ -33,6 +33,24 @@ export async function getLeaderboard(config = {}) {
     }
 }
 
+export async function getLeaderboardByRound(round: string, config = {}) {
+    try {
+        // "all" uses the aggregate endpoint for compatibility with the old behavior
+        const endpoint = round === "all" 
+            ? `${API_BASE}/api/users/leaderboard`
+            : `${API_BASE}/api/users/leaderboard/${round}`;
+
+        const res = await axios.get(endpoint, {
+            ...defaultAxiosConfig,
+            ...config,
+        });
+        return res.data as User[];
+    } catch (err) {
+        console.error("getLeaderboardByRound error:", err);
+        throw err;
+    }
+}
+
 export async function getUserTeamByRound(userId: number, round: string, config = {}): Promise<Team> {
     try {
         const url = `${API_BASE}/api/users/${userId}/teams/${round}`;

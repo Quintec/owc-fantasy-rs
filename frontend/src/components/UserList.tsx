@@ -13,9 +13,9 @@ export default function UserList(user: UserListProps) {
             <div className="flex items-center">
                 <span className="text-white text-2xl mr-5">#{user.rank + 1}</span>
                 <img src={`https://a.ppy.sh/${user.id}`} className="rounded-full h-20 w-20 mr-5"></img>
-                <span className="text-white text-bold text-xl">{user.username}</span>
+                <span className="text-white text-bold text-xl truncate">{user.username}</span>
             </div>
-            <span className="text-white text-bold text-xl">Score: {user.score}</span>
+            <span className="text-white text-bold text-xl"><span className="hidden sm:inline">Score: </span>{user.score}</span>
         </div>
     )
 }

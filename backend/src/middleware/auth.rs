@@ -13,8 +13,11 @@ pub async fn auth_middleware(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
-    // Allow auth endpoints and public leaderboard
-    if req.path().starts_with("/api/auth") || req.path() == "/api/users/leaderboard" {
+    // Allow auth endpoints and public views (leaderboard and player scores)
+    if req.path().starts_with("/api/auth")
+        || req.path().starts_with("/api/users/leaderboard")
+        || req.path().starts_with("/api/players/scores")
+    {
         return next.call(req).await;
     }
 

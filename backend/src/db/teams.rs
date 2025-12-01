@@ -87,20 +87,18 @@ pub async fn get_players_by_team_id(pool: &MySqlPool, team_id: i32) -> Result<Ve
     Ok(players)
 }
 
-/// Rank-based price calculation for fallback (matches the one in players.rs)
+/// Rank-based pricing fallback: 6M-15M logarithmic curve
+/// Used when no pScore available (higher rank = higher price)
 fn rank_to_price_fallback(rank: i32) -> i32 {
-    const MIN_PRICE: i32 = 6_000_000; // 6M floor (raised to match pScore pricing)
-    const MAX_PRICE: i32 = 15_000_000; // 15M ceiling for rank-based
+    const MIN_PRICE: i32 = 6_000_000;
+    const MAX_PRICE: i32 = 15_000_000;
     
     if rank <= 0 {
         return MIN_PRICE;
     }
     
-    // Logarithmic curve: price = max - k * log(rank)
-    const K: f64 = 2_500_000.0; // scaling factor
+    const K: f64 = 2_500_000.0;
     let log_price = MAX_PRICE as f64 - K * (rank as f64).ln();
-    
-    // Clamp between min and max, round to nearest thousand
     let price = log_price.max(MIN_PRICE as f64).min(MAX_PRICE as f64);
     ((price / 1000.0).round() * 1000.0) as i32
 }

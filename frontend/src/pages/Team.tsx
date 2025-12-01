@@ -14,7 +14,7 @@ export default function Team() {
     const [error, setError] = useState<string | null>(null);
     const [drafting, setDraft] = useState(false);
     const [queryPlayer, setPlayerQuery] = useState("");
-    const [balance, setBalance] = useState(100000000); // 100M default budget
+    const [balance, setBalance] = useState(120000000); // 120M default budget
     const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
     
     // drafting window is provided by RoundContext (Mon 00:00 UTC -> Fri 00:00 UTC)
@@ -104,7 +104,7 @@ export default function Team() {
         return (
             <div className="p-5 flex flex-col items-center">
                 <h1 className="text-xl font-bold text-white mb-5 text-center">Please log in</h1>
-                <p className="text-gray-400 mb-4">You must be logged in to view and edit your team.</p>
+                <p className="text-gray-400 mb-4 text-center">You must be logged in to view and edit your team.</p>
                 <button
                     className="bg-purple-500 text-white px-4 py-2 rounded-md"
                     onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/auth/login`}
@@ -198,10 +198,10 @@ export default function Team() {
             return;
         }
 
-        // Check country limit (max 2 players per country)
+        // Check country limit (max 3 players per country)
         const countryCount = draftedPlayers.filter(p => p.country === player.country).length;
-        if (countryCount >= 2) {
-            showNotification(`You already have 2 players from ${player.country}! Maximum 2 players per country allowed.`, 'error');
+        if (countryCount >= 3) {
+            showNotification(`You already have 3 players from ${player.country}! Maximum 3 players per country allowed.`, 'error');
             return;
         }
 
@@ -256,14 +256,14 @@ export default function Team() {
 
     const resetDraft = () => {
         setAllPlayers(players.map((p) => ({ ...p, drafted: false })));
-        setBalance(100000000);
+        setBalance(120000000);
     }
 
     const startDrafting = () => {
-        // Calculate balance: 100M - sum of already drafted players
+        // Calculate balance: 120M - sum of already drafted players
         const draftedPlayers = players.filter(p => p.drafted === true);
         const totalDraftedValue = draftedPlayers.reduce((sum, player) => sum + player.price, 0);
-        const remainingBalance = 100000000 - totalDraftedValue;
+        const remainingBalance = 120000000 - totalDraftedValue;
         
         console.log('Starting draft:');
         console.log('Drafted players:', draftedPlayers.map(p => ({ name: p.username, price: p.price })));
