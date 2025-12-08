@@ -1,0 +1,58 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        SELECT \n            u.id,\n            u.username,\n            u.avatar_url,\n            CAST(COALESCE(scores.total_score, 0) AS SIGNED) as `score: i64`\n        FROM Users u\n        LEFT JOIN (\n            SELECT \n                t.user_id,\n                SUM(\n                    CASE \n                        WHEN tp.player_id = t.captain_id THEN COALESCE(ps.score, 0) * 2\n                        ELSE COALESCE(ps.score, 0)\n                    END\n                ) as total_score\n            FROM Teams t\n            INNER JOIN TeamPlayers tp ON t.id = tp.team_id\n            LEFT JOIN PlayerScores ps ON tp.player_id = ps.player_id AND ps.round = t.round\n            WHERE t.round = ?\n            GROUP BY t.user_id\n        ) AS scores ON u.id = scores.user_id\n        ORDER BY `score: i64` DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 200
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "avatar_url",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 800
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "score: i64",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "char_set": 63,
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "24f24d51c750c0f4ce9a28c13301cbbf83855a5366f1474c6b15151023a6e644"
+}

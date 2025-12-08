@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO PlayerPrices (player_id, round, price) VALUES (?, ?, ?) \n         ON DUPLICATE KEY UPDATE price = VALUES(price)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "6d86b65e0e0f6b401e655cac418ab1e4dd5b9597ca2bfea08fa23a4671fdb924"
+}
