@@ -52,6 +52,10 @@ async fn teams_update_players(
         ));
     }
 
+    if round == "gf" {
+        return HttpResponse::BadRequest().body("Grand finals round is closed");
+    }
+
     if let Some(captain) = captain_id {
         if !player_ids.contains(&captain) {
             return HttpResponse::BadRequest().body(
