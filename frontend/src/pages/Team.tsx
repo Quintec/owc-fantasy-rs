@@ -5,7 +5,6 @@ import PlaceholderPlayer from "../components/PlaceholderPlayer";
 import { getRemainingPlayersWithPrices } from "../api/players";
 import { postPlayers, getUserTeamByRound, getTeamPlayersWithCaptain } from "../api/users";
 import { useAuth } from "../contexts/AuthContext";
-import { useRound } from "../contexts/RoundContext";
 
 export default function Team() {
     const [userPlayers, setUserPlayers] = useState<PlayerProps[]>([]);
